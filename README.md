@@ -38,3 +38,6 @@ Tips
 api.example.com/searchid/5236 to api.example.com/searchid/*
 - If you want more control or automation of the modification you can use the programming interface to edit the request.
 
+Notes
+-
+- Any modification to the domain group (adding/editing filter or enabling/disabling domain group) requires refreshing of affected pages to take action.
