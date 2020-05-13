@@ -1,0 +1,141 @@
+<style>
+	#mainPopup {
+		height: 500px;
+		width: 400px;
+		font-family: Helvetica, Ubuntu, Arial, sans-serif;
+	}
+	
+	body{
+		margin:0;
+	}
+	
+	header{
+		height:30px;
+		width:100%;
+		background-color:rgb(0, 145, 234);
+		color:white;
+		text-align:center;
+	}
+	
+	.centered{
+		text-align:center;
+	}
+	
+
+	.add-menu-link{
+		position: fixed;
+		bottom: 10px;
+		background-color: #0091EA;
+		width: 40px;
+		height: 40px;
+		right: 5px;
+		border-radius: 21px;		
+		box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+	}
+	
+	.add-group-link{
+		cursor: pointer;
+		color: white;
+		position: relative;
+		padding: 10px;
+		top: 5px;
+		font-size: 26px;
+	}	
+	
+
+	.description{
+		text-align:center;
+		font-size:12px;
+		margin:0;
+		font-weight:bold;
+	}
+	
+	.wordListContainer {
+		margin-bottom: 5px;
+		border: 1px solid #eee;
+		margin-left: 20px;
+		margin-right: 20px;
+		padding: 3px;
+		clear: both;
+		line-height: 30px;
+		min-height: 40px;
+		border-radius: 2px;
+	}	
+	
+.groupHeader {
+    color: #333;
+    font-size: 16px;
+    float: left;
+    margin-left: 10px;
+    margin-top: 5px;
+}	
+.groupColor {
+    /* padding: 0px 2px 0px 2px; */
+    margin-right: 2px;
+    margin-left: 4px;
+    font-size: 21px;
+    text-align: center;
+    border-radius: 3px;
+    /* box-shadow: 1px 1px #e5e5e5; */
+    width: 30px;
+    height: 30px;
+    border-radius: 15px;
+    float: left;
+    margin-top: 5px;
+}
+
+.flipGroup, .editGroup {
+    color: #0091EA;
+    font-size: 16px;
+    margin-left: 10px;
+    padding-top: 11px;
+    width: 30px;
+    float: right;
+    cursor: pointer;
+}
+.groupDisabled {
+    color: #ccc !important;
+}	
+.flipGroup:hover, .editGroup:hover{
+
+	color:black;
+}	
+.btn{
+    color: white;
+    margin-top: 21px;
+    float: left;
+    background-color: rgb(0, 145, 234);
+    padding: 3px;
+    border-radius: 4px;
+    margin-left: 2px;
+}
+
+.btn > a{
+	text-decoration:none;
+	color:white;
+}
+
+	.add-group-link:hover{
+		color:black;
+	}
+</style>
+<head>
+<link rel="stylesheet" href="/font-awesome/css/font-awesome.min.css">
+</head>
+
+<div id="mainPopup">
+	<header><h1>Ajax Request Tester</h1></header>
+	<span class='btn'><a href='/src/page_action/page_action.html'>Back</a></span>
+	<span class='btn'><a href='' id='apiBtn'>Found APIs</a></span><!-- We update the href in editgroup.js -->
+	<h1 class='centered'>Ajax Url List</h1>
+	<div id='domainGroup'>
+	
+	</div>
+	<div class="add-menu-link" style="text-align:center;">	
+		<a id='createAjaxUrl' style='text-decoration: none;' href=''> <!-- We update the href in editgroup.js -->
+			<span class="add-group-link">+</span>
+		</a>
+	</div>	
+</div>
+
+<script src='/src/page_action/editgroup.js'></script>
