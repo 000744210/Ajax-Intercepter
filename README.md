@@ -34,7 +34,7 @@ A dialog box should appear when the website attempts to fetch the API which will
 Tips
 -
 - Instead of manually writing the API url, have the domain group running and perform an action to activate the API. The API will be logged in the 'Found API' section.
-- When an api contains a dynamic url path. Use the * wildcard character to capture it. Example: 
+- When an API contains a dynamic url path. Use the * wildcard character to capture it. Example: 
 api.example.com/searchid/5236 to api.example.com/searchid/*
 - If you want more control or automation of the modification you can use the programming interface to edit the request.
 
