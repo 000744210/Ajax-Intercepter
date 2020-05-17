@@ -49,15 +49,19 @@ Notes
 Visual Guide
 -
 ![A domain group for discord.com](https://i.imgur.com/krCAf2Q.png)
+
 Created a domain group for discord.com
 
 ![Discovered APIs from loading Discord](https://i.imgur.com/Oq7aL6L.png)
+
 Created a domain group for discord.com
 
 ![API filter creation](https://i.imgur.com/U8STeQF.png)
+
 Created a filter for the messages API which is used to send a message in a  discord server.
 
 ![Intercepted Discord message sent](https://i.imgur.com/6ch201C.png)
+
 When attempting to send a message in the discord server, you will be prompted with a form containing what was about to be sent to discord. Any modification can be made to try and find security flaws. For example you can see what happens when you try to edit your content message with an empty string or change TTS to true.  
 
 You can take this a step further by enabling Advanced Automation in the filter and it will modify your request with the JavaScript logic you can write instead of prompting a form every time.
