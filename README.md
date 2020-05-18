@@ -74,7 +74,7 @@ Visual Guide
 		</kbd>
 	</div>
 	<br><br>
-	Created a filter for the messages API which is used to send a message in a discord server. Advanced Automation option can be used to skip the prompted form and automatically edit the request behind the scenes.
+	Created a filter for the messages API which is used to send a message in a discord server.<br>Advanced Automation option can be used to skip the prompted form and automatically edit the request behind the scenes.
 </kbd>
 <br><br>
 <kbd>
@@ -86,6 +86,3 @@ Visual Guide
 	<br><br>
 	When attempting to send a message in the discord server, you will be prompted with a form containing what was about to be sent to discord. Any modification can be made to try and find security flaws or bugs. For example you can see what happens when you try to edit your content message with an empty string or change TTS to true.
 </kbd>
-<br><br>
-
-You can take this a step further by enabling Advanced Automation in the filter and it will modify your request with the JavaScript logic you can write instead of prompting a form every time.
