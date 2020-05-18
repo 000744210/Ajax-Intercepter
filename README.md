@@ -72,7 +72,7 @@ Visual Guide
 </kbd>
 <br><br>
 <kbd>
-	<kbd>
+	<kbd align="center">
 		<img src="https://i.imgur.com/6ch201C.png">
 	</kbd>
 	<br><br>
