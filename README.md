@@ -54,7 +54,7 @@ Visual Guide
 		</kbd>
 	</div>
 	<br><br>
-	Created a domain group for discord.com
+	Created a domain group for discord.com. The domain name should only be the host name. For example "discord.com" not "www.discord.com" or "https://discord.com"
 </kbd>
 <br><br>
 <kbd>
@@ -64,7 +64,7 @@ Visual Guide
 		</kbd>
 	</div>
 	<br><br>
-	Discovered APIs from loading Discord
+	Discovered APIs from loading Discord. Clicking the checkmark will load the api into a filter creation page.
 </kbd>
 <br><br>
 <kbd>
@@ -74,7 +74,7 @@ Visual Guide
 		</kbd>
 	</div>
 	<br><br>
-	Created a filter for the messages API which is used to send a message in a  discord server.
+	Created a filter for the messages API which is used to send a message in a discord server. Advanced Automation option can be used to skip the prompted form and automatically edit the request behind the scenes.
 </kbd>
 <br><br>
 <kbd>
