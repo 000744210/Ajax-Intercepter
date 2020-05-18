@@ -66,7 +66,9 @@ Visual Guide
 </kbd>
 <br><br>
 <kbd>
-    <img src="https://i.imgur.com/6ch201C.png">
+	<kbd>
+		<img src="https://i.imgur.com/6ch201C.png">
+	</kbd>
 	<br>
 	When attempting to send a message in the discord server, you will be prompted with a form containing what was about to be sent to discord. Any modification can be made to try and find security flaws. For example you can see what happens when you try to edit your content message with an empty string or change TTS to true.
 </kbd>
