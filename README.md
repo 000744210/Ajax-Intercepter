@@ -54,7 +54,7 @@ Visual Guide
 		</kbd>
 	</div>
 	<br><br>
-	Created a domain group for discord.com. The domain name should only be the host name. For example "discord.com" not "www.discord.com" or "https://discord.com"
+	Created a domain group for discord.com. The domain name should only be the host name. <br>For example "discord.com" not "www.discord.com" or "https://discord.com"
 </kbd>
 <br><br>
 <kbd>
