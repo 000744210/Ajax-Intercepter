@@ -78,7 +78,7 @@ Visual Guide
 	</kbd>
 	</div>
 	<br><br>
-	When attempting to send a message in the discord server, you will be prompted with a form containing what was about to be sent to discord. Any modification can be made to try and find security flaws. For example you can see what happens when you try to edit your content message with an empty string or change TTS to true.
+	When attempting to send a message in the discord server, you will be prompted with a form containing what was about to be sent to discord. Any modification can be made to try and find security flaws or bugs. For example you can see what happens when you try to edit your content message with an empty string or change TTS to true.
 </kbd>
 <br><br>
 
