@@ -51,7 +51,7 @@ Visual Guide
 	<kbd>
 		<img src="https://i.imgur.com/krCAf2Q.png">
 	</kbd>
-	<br>
+	<br><br>
 	Created a domain group for discord.com
 </kbd>
 <br><br>
@@ -59,7 +59,7 @@ Visual Guide
 	<kbd>
 		<img src="https://i.imgur.com/Oq7aL6L.png">
 	</kbd>
-	<br>
+	<br><br>
 	Discovered APIs from loading Discord
 </kbd>
 <br><br>
@@ -67,15 +67,15 @@ Visual Guide
 	<kbd>
 		<img src="https://i.imgur.com/U8STeQF.png">
 	</kbd>
-	<br>
+	<br><br>
 	Created a filter for the messages API which is used to send a message in a  discord server.
 </kbd>
 <br><br>
-<kbd style='width:484px;'>
+<kbd>
 	<kbd>
 		<img src="https://i.imgur.com/6ch201C.png">
 	</kbd>
-	<br>
+	<br><br>
 	When attempting to send a message in the discord server, you will be prompted with a form containing what was about to be sent to discord. Any modification can be made to try and find security flaws. For example you can see what happens when you try to edit your content message with an empty string or change TTS to true.
 </kbd>
 <br><br>
