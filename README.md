@@ -48,19 +48,25 @@ Notes
 Visual Guide
 --
 <kbd>
-    <img src="https://i.imgur.com/krCAf2Q.png">
+	<kbd>
+		<img src="https://i.imgur.com/krCAf2Q.png">
+	</kbd>
 	<br>
 	Created a domain group for discord.com
 </kbd>
 <br><br>
 <kbd>
-    <img src="https://i.imgur.com/Oq7aL6L.png">
+	<kbd>
+		<img src="https://i.imgur.com/Oq7aL6L.png">
+	</kbd>
 	<br>
 	Discovered APIs from loading Discord
 </kbd>
 <br><br>
 <kbd>
-    <img src="https://i.imgur.com/U8STeQF.png">
+	<kbd>
+		<img src="https://i.imgur.com/U8STeQF.png">
+	</kbd>
 	<br>
 	Created a filter for the messages API which is used to send a message in a  discord server.
 </kbd>
