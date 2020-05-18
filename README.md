@@ -71,7 +71,7 @@ Visual Guide
 	Created a filter for the messages API which is used to send a message in a  discord server.
 </kbd>
 <br><br>
-<kbd>
+<kbd style='width:484px;'>
 	<kbd>
 		<img src="https://i.imgur.com/6ch201C.png">
 	</kbd>
