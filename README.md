@@ -37,12 +37,12 @@ Tips
 - Instead of manually writing the API url, have the domain group running and perform an action to activate the API. The API will be logged in the 'Found API' section.
 - When an API contains a dynamic url path. Use the * wildcard character to capture it. Example: 
 api.example.com/searchid/5236 to api.example.com/searchid/*
-- If you want more control or automation of the modification you can use the programming interface to edit the request.
+- If you want more control or automation of the modification you can use the programming interface with the advanced automation option to edit the request.
 
 Notes
 --
 - Any modification to the domain group (adding/editing filter or enabling/disabling domain group) requires refreshing of affected pages to take action.
-- If the website is using a FormData object in their request then it will break the prompt by displaying [object FormData] in the body. You would be need to use the advanced automation option to edit the FormData object instead. 
+- If the website is using a FormData object in their request then it will break the prompt by displaying <kbd>[object FormData]</kbd> in the body. You would need to use the advanced automation option to edit the FormData object instead. 
 
 
 Visual Guide
