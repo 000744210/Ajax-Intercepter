@@ -14,7 +14,7 @@ function parseUrl(url) {
 			port: m[7] || "",                    // 257
 			protocol: m[2] || "",                // http:
 			search: m[9] || "",                  // ?asd=asd
-			username: m[4] || "",                // username
+			username: m[4] || "",                // username 
 			password: m[5] || ""                 // password
 		};
 	if (r.protocol.length == 2) {

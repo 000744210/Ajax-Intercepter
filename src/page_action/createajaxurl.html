@@ -82,10 +82,20 @@ textarea
 			<div><label for='automation'>Advanced Automation</label><input type='checkbox' id='automation' name='automation'></input></div>
 <textarea class="tabSupport" id="codeBox" style='display:none;height:332px;' spellcheck="false">function onFilterMatch(request)
 {
-	console.log("Intercepted ", request)
+	console.log("Intercepted ", request);
 	// Modify the request object here.
 	return request;	
 }
+
+function onWebSocketMessageReceived(event){
+	console.log("Intercepted", event);
+	// modify the received Message event object.
+	return event;
+}
+
+// onWebSocketMessageReceived is a function for receiving 
+// the event object for a onMessage event.
+// event object contains a reject function for dropping the packet.
 
 // The objects passed to the onFilterMatch event
 
