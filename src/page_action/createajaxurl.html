@@ -80,25 +80,25 @@ textarea
 			<input id='domain' name='domain' class='full-width-input' placeholder='https://api.google.com/getinfo'></input>
 			<br><br>
 			<div><label for='automation'>Advanced Automation</label><input type='checkbox' id='automation' name='automation'></input></div>
-<textarea class="tabSupport" id="codeBox" style='display:none;height:332px;' spellcheck="false">function onFilterMatch(request)
+<textarea class="tabSupport" id="codeBox" style='display:none;height:332px;' spellcheck="false">async function onFilterMatch(request)
 {
 	console.log("Intercepted ", request);
 	// Modify the request object here.
 	return request;	
 }
 
-function onWebSocketMessageReceived(event){
+async function onWebSocketMessageReceived(event){
 	console.log("Intercepted", event);
 	// modify the received Message event object.
 	return event;
 }
 
 // onWebSocketMessageReceived is a function for receiving 
-// the event object for a onMessage event.
+// the event object for a WebSocket onMessage event.
 // event object contains a reject function for dropping the packet.
 
-// The objects passed to the onFilterMatch event
 
+// The objects passed to the onFilterMatch function
 // formRequest = {
 // 	  type : "Form",
 //
@@ -138,6 +138,16 @@ function onWebSocketMessageReceived(event){
 //	  url : "",     // The url of the API.
 //
 //	  options : {}  // The options for the fetch request.
+//
+//	  reject : function(){}
+//	  // Reject will cancel the network call.
+//    // May break the website's code.   
+// }
+
+// WebSocketSendRequest = {
+// 	  type : "WebSocketSend",    
+//
+//	  data : "",
 //
 //	  reject : function(){}
 //	  // Reject will cancel the network call.

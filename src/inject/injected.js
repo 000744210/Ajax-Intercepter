@@ -330,7 +330,7 @@ console.log("This page is currently intercepting all Ajax requests");
 
             eval(foundFilter.code);
 
-            var newRequestObj = onFilterMatch(requestObj);
+            var newRequestObj = await onFilterMatch(requestObj);
             if (!isRejected) {
                 return proxyFetch(newRequestObj.url, newRequestObj.options);
             }
@@ -463,9 +463,9 @@ console.log("This page is currently intercepting all Ajax requests");
                 }
             }
 
-            const params = new URLSearchParams(relativeToAbsolute(pairedOpenArguments.url));
+            var params = new URLSearchParams(relativeToAbsolute(pairedOpenArguments.url).split('?')[1]);
 
-            const paramsObj = Array.from(params.keys()).reduce(
+            var paramsObj = Array.from(params.keys()).reduce(
                     (acc, val) => ({
                         ...acc,
                         [val]: params.get(val)
@@ -475,7 +475,7 @@ console.log("This page is currently intercepting all Ajax requests");
 
             eval(foundFilter.code);
 
-            var newRequestObj = onFilterMatch(requestObj);
+            var newRequestObj = await onFilterMatch(requestObj);
 
             if (!isRejected) {
 				
@@ -537,7 +537,7 @@ console.log("This page is currently intercepting all Ajax requests");
 
                     eval(foundFilter.code);
 
-                    var newRequestObj = onFilterMatch(requestObj);
+                    var newRequestObj = await onFilterMatch(requestObj);
 
                     if (!isRejected) {
                         var formString = "<form style='display:none;' id='injected-form-submission' action='" + newRequestObj.url + "' method='" + newRequestObj.method + "'>";
@@ -564,7 +564,7 @@ console.log("This page is currently intercepting all Ajax requests");
             }
         })
     };
-
+	
     var handleHandler = new Map();
     var eventRef = null;
     var sourceHandler = null;
@@ -581,7 +581,7 @@ console.log("This page is currently intercepting all Ajax requests");
                 proxiedRemoveEventListener.apply(this, ["message", eventRef]);
             }
             if (typeof(handler) == "function") {
-                eventRef = function (event) {
+                eventRef = async function (event) {
                     var foundFilter = matchesUrlFilters(this.url);
                     if (foundFilter != null) {
                         event = makeWritable(event);
@@ -593,7 +593,7 @@ console.log("This page is currently intercepting all Ajax requests");
 						
 						// Make sure when we ran eval that they created the method.
 						if((typeof onWebSocketMessageReceived) !='undefined'){
-							event = onWebSocketMessageReceived(event);
+							event = await onWebSocketMessageReceived(event);
 							if (!isRejected) {
 								handler(event);
 							}
@@ -612,13 +612,13 @@ console.log("This page is currently intercepting all Ajax requests");
     })
 
     var proxiedAddEventListener = WebSocket.prototype.addEventListener;
-    WebSocket.prototype.addEventListener = function () {
+    WebSocket.prototype.addEventListener = async function () {
         logAPI(this.url, "")
         if (arguments[0] == "message") {
             var foundFilter = matchesUrlFilters(this.url);
             if (foundFilter != null) {
                 var handler = arguments[1];
-                arguments[1] = function (event) {
+                arguments[1] = async function (event) {
                     event = makeWritable(event);
                     eval(foundFilter.code);
                     var isRejected = false;
@@ -627,7 +627,7 @@ console.log("This page is currently intercepting all Ajax requests");
                     }
 					// Make sure when we ran eval that they created the method.
 					if((typeof onWebSocketMessageReceived) != 'undefined'){
-						event = onWebSocketMessageReceived(event);
+						event = await onWebSocketMessageReceived(event);
 						if (!isRejected) {
 							handler(event);
 						}
@@ -679,9 +679,9 @@ console.log("This page is currently intercepting all Ajax requests");
         }
         return event;
     }
-
+	
 	var proxiedWebSocketSend = WebSocket.prototype.send;
-	WebSocket.prototype.send = function(){
+	WebSocket.prototype.send = async function(){
 		var foundFilter = matchesUrlFilters(this.url);
 		if(foundFilter){
 			var isRejected = false;
@@ -694,7 +694,7 @@ console.log("This page is currently intercepting all Ajax requests");
 			}			
 			eval(foundFilter.code);
 			if ((typeof onFilterMatch) != 'undefined'){
-				var newRequestObj = onFilterMatch(requestObj);
+				var newRequestObj = await onFilterMatch(requestObj);
 
 				if (!isRejected) {
 					proxiedWebSocketSend.apply(this, [newRequestObj.data])
@@ -702,6 +702,9 @@ console.log("This page is currently intercepting all Ajax requests");
 			}else{
 				proxiedWebSocketSend.apply(this, [].slice.call(arguments))
 			}
+		}else{
+			proxiedWebSocketSend.apply(this, [].slice.call(arguments))
 		}
 	}
+	
 })()
