@@ -80,7 +80,8 @@ textarea
 			<input id='domain' name='domain' class='full-width-input' placeholder='https://api.google.com/getinfo'></input>
 			<br><br>
 			<div><label for='automation'>Advanced Automation</label><input type='checkbox' id='automation' name='automation'></input></div>
-<textarea class="tabSupport" id="codeBox" style='display:none;height:332px;' spellcheck="false">async function onFilterMatch(request)
+<div id='automationSection' style='display:none;'>
+<textarea class="tabSupport" id="codeBox" style='height:332px;' spellcheck="false">async function onFilterMatch(request)
 {
 	console.log("Intercepted ", request);
 	// Modify the request object here.
@@ -152,9 +153,14 @@ async function onWebSocketMessageReceived(event){
 //	  reject : function(){}
 //	  // Reject will cancel the network call.
 //    // May break the website's code.   
-// }</textarea>			
+// }</textarea>
+	<br><br>
+	<label>Library Loader</label><span style='float:right;color:#929292;padding-right:3px'>List of script urls to load to the page.</span>
+	<br>
+	<textarea id="libBox" style='height:30px;' placeholder='https://code.jquery.com/jquery-3.5.1.min.js' spellcheck="false"></textarea>
+</div>			
 <br><br>
-			<button class="continue-btn" id='continueBtn'>Continue</button>
+		<button class="continue-btn" id='continueBtn'>Continue</button>
 	</div>
 </div>
 
