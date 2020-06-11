@@ -62,6 +62,12 @@ console.log("This page is currently intercepting all Ajax requests");
             // https://www.google.com/home?q=hello+world would be https://www.google.com/home
             var apiUrl = parsedUrl.protocol + "//" + parsedUrl.hostname + parsedUrl.pathname;
             
+			var numberRegex = /\/\d+/gi; // detects a forwards slash and a sequence of numbers: /346
+			
+			// https://www.google.com/search/234 would be  https://www.google.com/search/* to compress the api list
+			apiUrl = apiUrl.replace(numberRegex,"/*")
+			
+			
 			// To increase performance we only append to the logger if the api has not been logged this session.
 			// Heavy use apis could slow down a browser a lot without this.
 			if(!logHistory.has(apiUrl)){
