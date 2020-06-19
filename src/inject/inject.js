@@ -96,8 +96,11 @@ chrome.storage.local.get(["domainGroupData"], function (result) {
                 var libSet = new Set();
                 for(let groupId in urls){
                     urls[groupId].libs.split("\n").forEach(function(lib){
+						
                         lib = lib.trim();
-                        libSet.add(lib);
+                        if(lib.length>1){
+							libSet.add(lib);
+						}
                     })
                     
                 }
@@ -106,10 +109,11 @@ chrome.storage.local.get(["domainGroupData"], function (result) {
                     var script = document.createElement('script');
                     script.setAttribute("type", "text/javascript");
                     script.onload = function () {
+                        console.log("loaded",script);
                         this.remove();
                     };
                     script.src = libUrl;
-                    console.log("loaded",script);
+                   
                     (document.head || document.documentElement).appendChild(script);
                 })
                 

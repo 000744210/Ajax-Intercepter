@@ -46,6 +46,43 @@ console.log("This page is currently intercepting all Ajax requests");
         });
     }
 	
+	
+	var filters = Object.entries(_FILTER_URLS);
+	var filterMethods = {}
+	for (let [key, value] of filters) {
+		let isEvaluated = false;
+		let filterMethod = null;
+		Object.defineProperty(filterMethods, key, {
+			// The purpose of this is that we need to wait for librarys to load in before we call eval.
+			// By the time the code gets to accessing the filterMethods the entire website would be loaded.
+			get:function(){
+				if(!isEvaluated){
+					(function(onFilterMatch=null,onWebSocketMessageReceived=null){
+						//let onFilterMatch = null;
+						//let onWebSocketMessageReceived = null;
+						eval(value.code);
+						filterMethod = {
+							'onFilterMatch':onFilterMatch,
+							'onWebSocketMessageReceived':onWebSocketMessageReceived
+						};
+						isEvaluated = true;
+					})()				
+				}
+				return filterMethod;
+			}
+        });
+		/*
+		(function(onFilterMatch=null,onWebSocketMessageReceived=null){
+			//let onFilterMatch = null;
+			//let onWebSocketMessageReceived = null;
+			eval(value.code);
+			filterMethods[key] = {
+				'onFilterMatch':onFilterMatch,
+				'onWebSocketMessageReceived':onWebSocketMessageReceived
+			};
+		})()*/
+	}
+	
 	/*
 		logAPI inserts a DOM object into the DOM for storing a log of APIs found.
 		This is due to a limitation with extensions which is the only way to share 
@@ -130,11 +167,12 @@ console.log("This page is currently intercepting all Ajax requests");
     }
 
     function matchesUrlFilters(url) {
-        url = relativeToAbsolute(url)
-            url = url.split('?')[0]
+        url = relativeToAbsolute(url);
+            url = url.split('?')[0];
             var filters = Object.entries(_FILTER_URLS);
         for (let[key, value]of filters) {
             if (wildTest(value.url, url)) {
+				value.id = key;
                 return value;
             }
         }
@@ -334,8 +372,8 @@ console.log("This page is currently intercepting all Ajax requests");
                 }
             };
 
-            eval(foundFilter.code);
-
+            let onFilterMatch = filterMethods[foundFilter.id].onFilterMatch;
+			//console.log(filterMethods);
             var newRequestObj = await onFilterMatch(requestObj);
             if (!isRejected) {
                 return proxyFetch(newRequestObj.url, newRequestObj.options);
@@ -444,7 +482,7 @@ console.log("This page is currently intercepting all Ajax requests");
 
             arguments[0] = newArguments.body;
 
-            if (newArguments.url != pairedOpenArguments.url && newArguments.method != pairedOpenArguments.method) {
+            if (newArguments.url != pairedOpenArguments.url || newArguments.method != pairedOpenArguments.method) {
                 proxiedOpen.apply(this, [].slice.call([newArguments.method, newArguments.url]))
             } else {
                 proxiedOpen.apply(this, [].slice.call([pairedOpenArguments.method, pairedOpenArguments.url]))
@@ -479,7 +517,7 @@ console.log("This page is currently intercepting all Ajax requests");
 
             requestObj.args = paramsObj;
 
-            eval(foundFilter.code);
+            let onFilterMatch = filterMethods[foundFilter.id].onFilterMatch;
 
             var newRequestObj = await onFilterMatch(requestObj);
 
@@ -541,7 +579,7 @@ console.log("This page is currently intercepting all Ajax requests");
                         }
                     });
 
-                    eval(foundFilter.code);
+                    let onFilterMatch = filterMethods[foundFilter.id].onFilterMatch;
 
                     var newRequestObj = await onFilterMatch(requestObj);
 
@@ -591,14 +629,15 @@ console.log("This page is currently intercepting all Ajax requests");
                     var foundFilter = matchesUrlFilters(this.url);
                     if (foundFilter != null) {
                         event = makeWritable(event);
-                        eval(foundFilter.code);
+                        let onFilterMatch = filterMethods[foundFilter.id].onFilterMatch;
+						let onWebSocketMessageReceived = filterMethods[foundFilter.id].onWebSocketMessageReceived;
                         var isRejected = false;
                         event.reject = function () {
                             isRejected = true;
                         }
 						
 						// Make sure when we ran eval that they created the method.
-						if((typeof onWebSocketMessageReceived) !='undefined'){
+						if(onWebSocketMessageReceived!=null){
 							event = await onWebSocketMessageReceived(event);
 							if (!isRejected) {
 								handler(event);
@@ -626,13 +665,14 @@ console.log("This page is currently intercepting all Ajax requests");
                 var handler = arguments[1];
                 arguments[1] = async function (event) {
                     event = makeWritable(event);
-                    eval(foundFilter.code);
+                    let onFilterMatch = filterMethods[foundFilter.id].onFilterMatch;
+					let onWebSocketMessageReceived = filterMethods[foundFilter.id].onWebSocketMessageReceived;
                     var isRejected = false;
                     event.reject = function () {
                         isRejected = true;
                     }
 					// Make sure when we ran eval that they created the method.
-					if((typeof onWebSocketMessageReceived) != 'undefined'){
+					if(onWebSocketMessageReceived != null){
 						event = await onWebSocketMessageReceived(event);
 						if (!isRejected) {
 							handler(event);
@@ -698,8 +738,9 @@ console.log("This page is currently intercepting all Ajax requests");
 					isRejected = true;
 				}
 			}			
-			eval(foundFilter.code);
-			if ((typeof onFilterMatch) != 'undefined'){
+			let onFilterMatch = filterMethods[foundFilter.id].onFilterMatch;
+
+			if (onFilterMatch!=null){
 				var newRequestObj = await onFilterMatch(requestObj);
 
 				if (!isRejected) {
