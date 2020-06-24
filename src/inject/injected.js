@@ -10,6 +10,11 @@ console.log("This page is currently intercepting all Ajax requests");
     // The onSend will return /newapi since that's the one being used to call the request. No site should be doing 2 open calls like above but it could happen.
     xmlHttpRequestTracker = {};
     xmlHttpRequestTracker.history = [];
+	xmlHttpRequestTracker.urlMap = new Map();
+	xmlHttpRequestTracker.getXmlHttpRequestUrl = function(xmlHttpRequestObject){
+		return xmlHttpRequestTracker.urlMap.get(xmlHttpRequestObject)
+	}
+	
     xmlHttpRequestTracker.onSend = function (xmlHttpRequestObject) {
         var headers = {}
         for (i = xmlHttpRequestTracker.history.length - 1; i >= 0; i--) { // loop though our open() history in reverse to read it by most recently added.
@@ -30,6 +35,9 @@ console.log("This page is currently intercepting all Ajax requests");
         }
     }
     xmlHttpRequestTracker.onOpen = function (xmlHttpRequestObject, arguments) {
+		
+		this.urlMap.set(xmlHttpRequestObject,arguments[1])
+		
         xmlHttpRequestTracker.history.push({
             eventName: "open",
             requestObject: xmlHttpRequestObject,
@@ -48,8 +56,15 @@ console.log("This page is currently intercepting all Ajax requests");
 	
 	
 	var filters = Object.entries(_FILTER_URLS);
+	
+	// the location where our evaluated user's code is stored.
 	var filterMethods = {}
 	for (let [key, value] of filters) {
+		
+		// assign an id to every filter.
+		// id is used for a lookup for the filterMethods object
+		value.id = key;
+		
 		let isEvaluated = false;
 		let filterMethod = null;
 		Object.defineProperty(filterMethods, key, {
@@ -57,35 +72,23 @@ console.log("This page is currently intercepting all Ajax requests");
 			// By the time the code gets to accessing the filterMethods the entire website would be loaded.
 			get:function(){
 				if(!isEvaluated){
-					(function(onFilterMatch=null,onWebSocketMessageReceived=null){
-						//let onFilterMatch = null;
-						//let onWebSocketMessageReceived = null;
+					(function(onRequestDataSend=null,onRequestDataReturn=null){
 						eval(value.code);
 						filterMethod = {
-							'onFilterMatch':onFilterMatch,
-							'onWebSocketMessageReceived':onWebSocketMessageReceived
+							'onRequestDataSend':onRequestDataSend,
+							'onRequestDataReturn':onRequestDataReturn
 						};
 						isEvaluated = true;
-					})()				
+					})();			
 				}
 				return filterMethod;
 			}
         });
-		/*
-		(function(onFilterMatch=null,onWebSocketMessageReceived=null){
-			//let onFilterMatch = null;
-			//let onWebSocketMessageReceived = null;
-			eval(value.code);
-			filterMethods[key] = {
-				'onFilterMatch':onFilterMatch,
-				'onWebSocketMessageReceived':onWebSocketMessageReceived
-			};
-		})()*/
 	}
 	
 	/*
 		logAPI inserts a DOM object into the DOM for storing a log of APIs found.
-		This is due to a limitation with extensions which is the only way to share 
+		This is due to a limitation with extensions. The only way to share 
 		information is through the usage of the DOM. This is insecure hense why they tried to prevent it.
 	*/
 	logHistory = new Set();
@@ -172,7 +175,6 @@ console.log("This page is currently intercepting all Ajax requests");
             var filters = Object.entries(_FILTER_URLS);
         for (let[key, value]of filters) {
             if (wildTest(value.url, url)) {
-				value.id = key;
                 return value;
             }
         }
@@ -228,8 +230,6 @@ console.log("This page is currently intercepting all Ajax requests");
         });
     }
 
-    //inactive
-    async function promptOpen(data) {
         return new Promise(function (resolve) {
             var swalConfig = {
                 html: `<label for='swal-input2'>Url</label><input name='swal-input2' id='swal-input2' style='width:100%'><br><br>` +
@@ -255,7 +255,6 @@ console.log("This page is currently intercepting all Ajax requests");
         })
 
     }
-
     async function promptFetch(data) {
         return new Promise(function (resolve) {
             var swalConfig = {
@@ -359,8 +358,10 @@ console.log("This page is currently intercepting all Ajax requests");
 
         logAPI(url, "")
         var foundFilter = matchesUrlFilters(url);
-        if (foundFilter == null)
+        if (foundFilter == null){
             return proxyFetch(url, options);
+		}
+		
         if (foundFilter.isAutomated) {
             var isRejected = false;
             var requestObj = {
@@ -372,12 +373,42 @@ console.log("This page is currently intercepting all Ajax requests");
                 }
             };
 
-            let onFilterMatch = filterMethods[foundFilter.id].onFilterMatch;
+            let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
+			let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
 			//console.log(filterMethods);
-            var newRequestObj = await onFilterMatch(requestObj);
-            if (!isRejected) {
-                return proxyFetch(newRequestObj.url, newRequestObj.options);
-            }
+            var newRequestObj = await onRequestDataSend(requestObj);
+            if (!isRejected  ) {
+				if(onRequestDataReturn!=null){
+					let fetchReturn = proxyFetch(newRequestObj.url, newRequestObj.options);
+					return new Promise(function(resolve,reject){
+						fetchReturn.then(function(data){
+							data.text().then(function(text){
+								let requestObj {
+									type: 'Fetch',
+									data: text,
+								}
+								
+								onRequestDataReturn(requestObj).then(function(newData){
+									// create a new response for the modified body
+									let dataResponse = new Response(newData.data,{
+										status:data.status,
+										statusText:data.statusText,
+										headers:data.headers
+									});
+
+									resolve(dataResponse);
+								});	
+							})
+							
+						}).catch(function(data){
+							reject(data);
+						})
+					})
+				}else{
+					return proxyFetch(newRequestObj.url, newRequestObj.options);
+				}
+			}
+		
         } else {
 
             var headers = options.headers || {}
@@ -517,9 +548,9 @@ console.log("This page is currently intercepting all Ajax requests");
 
             requestObj.args = paramsObj;
 
-            let onFilterMatch = filterMethods[foundFilter.id].onFilterMatch;
+            let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
 
-            var newRequestObj = await onFilterMatch(requestObj);
+            var newRequestObj = await onRequestDataSend(requestObj);
 
             if (!isRejected) {
 				
@@ -539,8 +570,135 @@ console.log("This page is currently intercepting all Ajax requests");
             }
         }
 
-    }
+    };
 
+	// xmlHttpRequest on data return
+	(function(){
+		var handleHandler = new Map();
+		var eventRef = null;
+		var sourceHandler = null;
+		
+		Object.defineProperty(window.XMLHttpRequest.prototype, "onload", {
+			get: function () {
+				return sourceHandler;
+			},
+			set: function (handler) {
+
+				sourceHandler = handler;
+				if (eventRef) {
+					proxiedRemoveEventListener.apply(this, ["load", eventRef]);
+				}
+				if (typeof(handler) == "function") {
+					eventRef = async function (event) {
+						var url = xmlHttpRequestTracker.getXmlHttpRequestUrl(this);
+						
+						var foundFilter = matchesUrlFilters(url);
+						if (foundFilter != null) {
+							let writableObj = makeWritable(this);
+							let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
+							let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
+							var isRejected = false;
+							writableObj.reject = function () {
+								isRejected = true;
+							}
+							
+							// Make sure when we ran eval that they created the method.
+							if(onRequestDataReturn!=null){
+								let thisRef = await onRequestDataReturn(writableObj);
+								if (!isRejected) {
+									handler.bind(thisRef)(event);
+								}
+							}else{
+								handler.bind(this)(event)
+							}
+						} else {
+							handler.bind(this)(event);
+						}
+					}
+					proxiedAddEventListener.apply(this, ["load", eventRef]);
+				} else {
+					eventRef = null;
+				}
+			}
+		});
+
+		var proxiedAddEventListener = window.XMLHttpRequest.prototype.addEventListener;
+		window.XMLHttpRequest.prototype.addEventListener = async function () {
+			if (arguments[0] == "load") {
+				let handler = arguments[1];
+				let xmlObject = this;
+				arguments[1] = async function (event) {
+					let url = xmlHttpRequestTracker.getXmlHttpRequestUrl(xmlObject);
+					let foundFilter = matchesUrlFilters(url);
+					if (foundFilter != null) {
+						let writableObj = makeWritable(this);
+						let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
+						let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
+						let isRejected = false;
+						writableObj.reject = function () {
+							isRejected = true;
+						}
+						// Make sure when we ran eval that they created the method.
+						if(onRequestDataReturn != null){
+							let thisRef = await onRequestDataReturn(writableObj);
+							if (!isRejected) {
+								handler.bind(thisRef)(event);
+								//handler(event);
+							}
+						}else{
+							handler.bind(this)(event);
+						}
+					}else{
+						handler.bind(this)(event);
+					}
+				}
+
+				if (!handleHandler.has(this)) {
+					var map = new Map();
+					map.set(handler, arguments[1]);
+					handleHandler.set(this, map);
+
+					proxiedAddEventListener.apply(this, [].slice.call(arguments));
+				} else if (!handleHandler.get(this).has(handler)) {
+					handleHandler.get(this).set(handler, arguments[1]);
+					proxiedAddEventListener.apply(this, [].slice.call(arguments));
+				}
+				
+			} else {
+				proxiedAddEventListener.apply(this, [].slice.call(arguments));
+			}
+
+		}
+
+		var proxiedRemoveEventListener = window.XMLHttpRequest.prototype.removeEventListener;
+		window.XMLHttpRequest.prototype.removeEventListener = function () {
+			let url = xmlHttpRequestTracker.getXmlHttpRequestUrl(this);
+			var foundFilter = matchesUrlFilters(url);
+			if (foundFilter != null) {
+				if (arguments[0] == "load") {
+					arguments[1] = handleHandler.get(this).get(arguments[1]);
+				}
+			}
+			proxiedRemoveEventListener.apply(this, [].slice.call(arguments));
+
+		}
+
+		function makeWritable(event) {
+			//alert("middleman")
+			for (prop in event) {
+				try {
+					Object.defineProperty(event, prop, {
+						value: event[prop],
+						writable: true,
+						configurable: true
+					})
+				} catch (e) {}
+				// we can not define event.isTrusted due to security in chrome.
+			}
+			return event;
+		}
+	})();	
+	
     // Intercept all form submissions
     window.onload = function (event) {
         document.body.addEventListener('submit', async function (event) {
@@ -579,9 +737,9 @@ console.log("This page is currently intercepting all Ajax requests");
                         }
                     });
 
-                    let onFilterMatch = filterMethods[foundFilter.id].onFilterMatch;
+                    let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
 
-                    var newRequestObj = await onFilterMatch(requestObj);
+                    var newRequestObj = await onRequestDataSend(requestObj);
 
                     if (!isRejected) {
                         var formString = "<form style='display:none;' id='injected-form-submission' action='" + newRequestObj.url + "' method='" + newRequestObj.method + "'>";
@@ -608,140 +766,144 @@ console.log("This page is currently intercepting all Ajax requests");
             }
         })
     };
-	
-    var handleHandler = new Map();
-    var eventRef = null;
-    var sourceHandler = null;
+	// Websocket on data return
+	(function(){
+		var handleHandler = new Map();
+		var eventRef = null;
+		var sourceHandler = null;
 
-    Object.defineProperty(WebSocket.prototype, "onmessage", {
-        get: function () {
-            return sourceHandler;
-        },
-        set: function (handler) {
-            logAPI(this.url, "");
+		Object.defineProperty(WebSocket.prototype, "onmessage", {
+			get: function () {
+				return sourceHandler;
+			},
+			set: function (handler) {
+				logAPI(this.url, "");
 
-            sourceHandler = handler;
-            if (eventRef) {
-                proxiedRemoveEventListener.apply(this, ["message", eventRef]);
-            }
-            if (typeof(handler) == "function") {
-                eventRef = async function (event) {
-                    var foundFilter = matchesUrlFilters(this.url);
-                    if (foundFilter != null) {
-                        event = makeWritable(event);
-                        let onFilterMatch = filterMethods[foundFilter.id].onFilterMatch;
-						let onWebSocketMessageReceived = filterMethods[foundFilter.id].onWebSocketMessageReceived;
-                        var isRejected = false;
-                        event.reject = function () {
-                            isRejected = true;
-                        }
-						
+				sourceHandler = handler;
+				if (eventRef) {
+					proxiedRemoveEventListener.apply(this, ["message", eventRef]);
+				}
+				if (typeof(handler) == "function") {
+					eventRef = async function (event) {
+						var foundFilter = matchesUrlFilters(this.url);
+						if (foundFilter != null) {
+							event = makeWritable(event);
+							let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
+							let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
+							var isRejected = false;
+							event.reject = function () {
+								isRejected = true;
+							}
+							
+							// Make sure when we ran eval that they created the method.
+							if(onRequestDataReturn!=null){
+								event = await onRequestDataReturn(event);
+								if (!isRejected) {
+									handler.bind(this)(event);
+								}
+							}else{
+								handler.bind(this)(event)
+							}
+						} else {
+							handler.bind(this)(event);
+						}
+					}
+					proxiedAddEventListener.apply(this, ["message", eventRef]);
+				} else {
+					eventRef = null;
+				}
+			}
+		})
+
+		var proxiedAddEventListener = WebSocket.prototype.addEventListener;
+		WebSocket.prototype.addEventListener = async function () {
+			let thisRef = this;
+			logAPI(this.url, "")
+			if (arguments[0] == "message") {
+				var foundFilter = matchesUrlFilters(this.url);
+				if (foundFilter != null) {
+					let handler = arguments[1];
+					arguments[1] = async function (event) {
+						event = makeWritable(event);
+						let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
+						let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
+						let isRejected = false;
+						event.reject = function () {
+							isRejected = true;
+						}
 						// Make sure when we ran eval that they created the method.
-						if(onWebSocketMessageReceived!=null){
-							event = await onWebSocketMessageReceived(event);
+						if(onRequestDataReturn != null){
+							event = await onRequestDataReturn(event);
 							if (!isRejected) {
-								handler(event);
+								handler.bind(thisRef)(event);
 							}
 						}else{
-							handler(event)
+							handler.bind(thisRef)(event);
 						}
-                    } else {
-                        handler(event);
-                    }
-                }
-                proxiedAddEventListener.apply(this, ["message", eventRef]);
-            } else {
-                eventRef = null;
-            }
-        }
-    })
-
-    var proxiedAddEventListener = WebSocket.prototype.addEventListener;
-    WebSocket.prototype.addEventListener = async function () {
-        logAPI(this.url, "")
-        if (arguments[0] == "message") {
-            var foundFilter = matchesUrlFilters(this.url);
-            if (foundFilter != null) {
-                var handler = arguments[1];
-                arguments[1] = async function (event) {
-                    event = makeWritable(event);
-                    let onFilterMatch = filterMethods[foundFilter.id].onFilterMatch;
-					let onWebSocketMessageReceived = filterMethods[foundFilter.id].onWebSocketMessageReceived;
-                    var isRejected = false;
-                    event.reject = function () {
-                        isRejected = true;
-                    }
-					// Make sure when we ran eval that they created the method.
-					if(onWebSocketMessageReceived != null){
-						event = await onWebSocketMessageReceived(event);
-						if (!isRejected) {
-							handler(event);
-						}
-					}else{
-						handler(event);
 					}
-                }
 
-                if (!handleHandler.has(this)) {
-                    var map = new Map();
-                    map.set(handler, arguments[1]);
-                    handleHandler.set(this, map);
+					if (!handleHandler.has(this)) {
+						var map = new Map();
+						map.set(handler, arguments[1]);
+						handleHandler.set(this, map);
 
-                    proxiedAddEventListener.apply(this, [].slice.call(arguments));
-                } else if (!handleHandler.get(this).has(handler)) {
-                    handleHandler.get(this).set(handler, arguments[1]);
-                    proxiedAddEventListener.apply(this, [].slice.call(arguments));
-                }
-            }
-        } else {
-            proxiedAddEventListener.apply(this, [].slice.call(arguments));
-        }
+						proxiedAddEventListener.apply(this, [].slice.call(arguments));
+					} else if (!handleHandler.get(this).has(handler)) {
+						handleHandler.get(this).set(handler, arguments[1]);
+						proxiedAddEventListener.apply(this, [].slice.call(arguments));
+					}
+				}
+			} else {
+				proxiedAddEventListener.apply(this, [].slice.call(arguments));
+			}
 
-    }
+		}
 
-    var proxiedRemoveEventListener = WebSocket.prototype.removeEventListener;
-    WebSocket.prototype.removeEventListener = function () {
-        var foundFilter = matchesUrlFilters(this.url);
-        if (foundFilter != null) {
-            if (arguments[0] == "message") {
-                arguments[1] = handleHandler.get(this).get(arguments[1]);
-            }
-        }
-        proxiedRemoveEventListener.apply(this, [].slice.call(arguments));
+		var proxiedRemoveEventListener = WebSocket.prototype.removeEventListener;
+		WebSocket.prototype.removeEventListener = function () {
+			var foundFilter = matchesUrlFilters(this.url);
+			if (foundFilter != null) {
+				if (arguments[0] == "message") {
+					arguments[1] = handleHandler.get(this).get(arguments[1]);
+				}
+			}
+			proxiedRemoveEventListener.apply(this, [].slice.call(arguments));
 
-    }
+		}
 
-    function makeWritable(event) {
-        //alert("middleman")
-        for (prop in event) {
-            try {
-                Object.defineProperty(event, prop, {
-                    value: event[prop],
-                    writable: true,
-                    configurable: true
-                })
-            } catch (e) {}
-            // we can not define event.isTrusted due to security in chrome.
-        }
-        return event;
-    }
+		function makeWritable(event) {
+			//alert("middleman")
+			for (prop in event) {
+				try {
+					Object.defineProperty(event, prop, {
+						value: event[prop],
+						writable: true,
+						configurable: true
+					})
+				} catch (e) {}
+				// we can not define event.isTrusted due to security in chrome.
+			}
+			return event;
+		}
+	})();
 	
+	// websocket onsend
 	var proxiedWebSocketSend = WebSocket.prototype.send;
 	WebSocket.prototype.send = async function(){
 		var foundFilter = matchesUrlFilters(this.url);
 		if(foundFilter){
 			var isRejected = false;
 			var requestObj = {
-				type: 'WebSocketSend',
+				type: 'WebSocket',
 				data: arguments[0],
 				reject: function () {
 					isRejected = true;
 				}
 			}			
-			let onFilterMatch = filterMethods[foundFilter.id].onFilterMatch;
+			let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
 
-			if (onFilterMatch!=null){
-				var newRequestObj = await onFilterMatch(requestObj);
+			if (onRequestDataSend!=null){
+				var newRequestObj = await onRequestDataSend(requestObj);
 
 				if (!isRejected) {
 					proxiedWebSocketSend.apply(this, [newRequestObj.data])

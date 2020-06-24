@@ -81,25 +81,27 @@ textarea
 			<br><br>
 			<div><label for='automation'>Advanced Automation</label><input type='checkbox' id='automation' name='automation'></input></div>
 <div id='automationSection' style='display:none;'>
-<textarea class="tabSupport" id="codeBox" style='height:332px;' spellcheck="false">async function onFilterMatch(request)
+<textarea class="tabSupport" id="codeBox" style='height:332px;' spellcheck="false">async function onRequestDataSend(request)
 {
 	console.log("Intercepted ", request);
 	// Modify the request object here.
 	return request;	
 }
 
-async function onWebSocketMessageReceived(event){
+async function onRequestDataReturn(event){
 	console.log("Intercepted", event);
-	// modify the received Message event object.
+	// modify the received event object.
 	return event;
 }
 
-// onWebSocketMessageReceived is a function for receiving 
-// the event object for a WebSocket onMessage event.
+// onRequestDataReturn is a function for receiving 
+//
+//  
+//
 // event object contains a reject function for dropping the packet.
 
 
-// The objects passed to the onFilterMatch function
+// The objects passed to the onRequestDataSend function
 // formRequest = {
 // 	  type : "Form",
 //
@@ -146,7 +148,7 @@ async function onWebSocketMessageReceived(event){
 // }
 
 // WebSocketSendRequest = {
-// 	  type : "WebSocketSend",    
+// 	  type : "WebSocket",    
 //
 //	  data : "",
 //

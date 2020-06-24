@@ -26,7 +26,7 @@ function parseUrl(url) {
 };    
 
 document.getElementById("continueBtn").onclick = function(){
-    var domainRegex = /^[a-z0-9]*(\.([a-z0-9]+))*$/
+    var domainRegex = /^[a-z0-9\-]*(\.([a-z0-9\-]+))*$/
     
     var url = document.getElementById("domain").value
     

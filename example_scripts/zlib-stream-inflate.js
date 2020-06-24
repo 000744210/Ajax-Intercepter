@@ -12,7 +12,7 @@
 var inflater = new pako.Inflate({to:'string',chunkSize:16384*64});
 
 // called everytime we intercept the websocket receiving data.
-async function onWebSocketMessageReceived(event){
+async function onRequestDataReturn(event){
 	
 	var before = inflater.strm.next_out
 	inflater.push(event.data,false)
