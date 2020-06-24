@@ -375,40 +375,44 @@ console.log("This page is currently intercepting all Ajax requests");
 
             let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
 			let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
-			//console.log(filterMethods);
-            var newRequestObj = await onRequestDataSend(requestObj);
-            if (!isRejected  ) {
-				if(onRequestDataReturn!=null){
-					let fetchReturn = proxyFetch(newRequestObj.url, newRequestObj.options);
-					return new Promise(function(resolve,reject){
-						fetchReturn.then(function(data){
-							data.text().then(function(text){
-								let requestObj {
-									type: 'Fetch',
-									data: text,
-								}
-								
-								onRequestDataReturn(requestObj).then(function(newData){
-									// create a new response for the modified body
-									let dataResponse = new Response(newData.data,{
-										status:data.status,
-										statusText:data.statusText,
-										headers:data.headers
-									});
+			if(onRequestDataSend!=null){
+				var newRequestObj = await onRequestDataSend(requestObj);
+				if (!isRejected  ) {
+					if(onRequestDataReturn!=null){
+						let fetchReturn = proxyFetch(newRequestObj.url, newRequestObj.options);
+						return new Promise(function(resolve,reject){
+							fetchReturn.then(function(data){
+								data.text().then(function(text){
+									let requestObj {
+										type: 'Fetch',
+										data: text,
+									}
+									
+									onRequestDataReturn(requestObj).then(function(newData){
+										// create a new response for the modified body
+										let dataResponse = new Response(newData.data,{
+											status:data.status,
+											statusText:data.statusText,
+											headers:data.headers
+										});
 
-									resolve(dataResponse);
-								});	
+										resolve(dataResponse);
+									});	
+								})
+								
+							}).catch(function(data){
+								reject(data);
 							})
-							
-						}).catch(function(data){
-							reject(data);
 						})
-					})
-				}else{
-					return proxyFetch(newRequestObj.url, newRequestObj.options);
+					}else{
+						return proxyFetch(newRequestObj.url, newRequestObj.options);
+					}
 				}
+			}else{
+				// todo: fix this bug. it does not intercept the return data of this request because they did not define a onRequestDataSend method
+				// I have to refactor the mess of code from above into a function and reuse it on this fetch call.
+				return proxyFetch(url, options);
 			}
-		
         } else {
 
             var headers = options.headers || {}
@@ -525,49 +529,54 @@ console.log("This page is currently intercepting all Ajax requests");
 
             return proxiedSend.apply(this, [].slice.call(arguments));
         } else {
-            var isRejected = false;
-            var requestObj = {
-                type: 'XmlHttpRequest',
-                args: {},
-                url: pairedOpenArguments.url.split('?')[0],
-                method: pairedOpenArguments.method,
-                headers: pairedOpenArguments.headers,
-                body: arguments[0],
-                reject: function () {
-                    isRejected = true;
-                }
-            }
+			let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
+			if(onRequestDataSend!=null){
+				var isRejected = false;
+				var requestObj = {
+					type: 'XmlHttpRequest',
+					args: {},
+					url: pairedOpenArguments.url.split('?')[0],
+					method: pairedOpenArguments.method,
+					headers: pairedOpenArguments.headers,
+					body: arguments[0],
+					reject: function () {
+						isRejected = true;
+					}
+				}
 
-            var params = new URLSearchParams(relativeToAbsolute(pairedOpenArguments.url).split('?')[1]);
+				var params = new URLSearchParams(relativeToAbsolute(pairedOpenArguments.url).split('?')[1]);
 
-            var paramsObj = Array.from(params.keys()).reduce(
-                    (acc, val) => ({
-                        ...acc,
-                        [val]: params.get(val)
-                    }), {});
+				var paramsObj = Array.from(params.keys()).reduce(
+						(acc, val) => ({
+							...acc,
+							[val]: params.get(val)
+						}), {});
 
-            requestObj.args = paramsObj;
+				requestObj.args = paramsObj;
 
-            let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
-
-            var newRequestObj = await onRequestDataSend(requestObj);
-
-            if (!isRejected) {
 				
-				var withCredentials = this.withCredentials;
-				var responseType = this.responseType;
-				
-                proxiedOpen.apply(this, [].slice.call([newRequestObj.method, newRequestObj.url]))
 
-                for (const header in newRequestObj.headers) {
-                    proxiedSetRequestHeader.apply(this, [].slice.call([header, newRequestObj.headers[header]]));
-                }
-				
-				this.withCredentials = withCredentials;
-				this.responseType = responseType;
-				
-                proxiedSend.apply(this, [].slice.call([newRequestObj.body]));
-            }
+				var newRequestObj = await onRequestDataSend(requestObj);
+
+				if (!isRejected) {
+					
+					var withCredentials = this.withCredentials;
+					var responseType = this.responseType;
+					
+					proxiedOpen.apply(this, [].slice.call([newRequestObj.method, newRequestObj.url]))
+
+					for (const header in newRequestObj.headers) {
+						proxiedSetRequestHeader.apply(this, [].slice.call([header, newRequestObj.headers[header]]));
+					}
+					
+					this.withCredentials = withCredentials;
+					this.responseType = responseType;
+					
+					proxiedSend.apply(this, [].slice.call([newRequestObj.body]));
+				}
+			}else{
+				return proxiedSend.apply(this, [].slice.call(arguments));
+			}
         }
 
     };
@@ -594,16 +603,17 @@ console.log("This page is currently intercepting all Ajax requests");
 						
 						var foundFilter = matchesUrlFilters(url);
 						if (foundFilter != null) {
-							let writableObj = makeWritable(this);
-							let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
-							let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
-							var isRejected = false;
-							writableObj.reject = function () {
-								isRejected = true;
-							}
 							
-							// Make sure when we ran eval that they created the method.
+							let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
 							if(onRequestDataReturn!=null){
+								let writableObj = makeWritable(this);
+								var isRejected = false;
+								writableObj.reject = function () {
+									isRejected = true;
+								}
+								
+								// Make sure when we ran eval that they created the method.
+							
 								let thisRef = await onRequestDataReturn(writableObj);
 								if (!isRejected) {
 									handler.bind(thisRef)(event);
@@ -631,15 +641,16 @@ console.log("This page is currently intercepting all Ajax requests");
 					let url = xmlHttpRequestTracker.getXmlHttpRequestUrl(xmlObject);
 					let foundFilter = matchesUrlFilters(url);
 					if (foundFilter != null) {
-						let writableObj = makeWritable(this);
-						let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
 						let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
-						let isRejected = false;
-						writableObj.reject = function () {
-							isRejected = true;
-						}
-						// Make sure when we ran eval that they created the method.
 						if(onRequestDataReturn != null){
+							let writableObj = makeWritable(this);
+							
+							let isRejected = false;
+							writableObj.reject = function () {
+								isRejected = true;
+							}
+							// Make sure when we ran eval that they created the method.
+						
 							let thisRef = await onRequestDataReturn(writableObj);
 							if (!isRejected) {
 								handler.bind(thisRef)(event);
@@ -713,52 +724,54 @@ console.log("This page is currently intercepting all Ajax requests");
             if (foundFilter != null) {
                 event.preventDefault(); // prevents the form being submitted.
                 if (foundFilter.isAutomated) {
-                    var isRejected = false;
-                    var requestObj = {
-                        type: "Form",
-                        args: {},
-                        url: event.target.action,
-                        method: event.target.method,
-                        reject: function () {
-                            isRejected = true;
-                        }
-                    }
-
-                    paramElements.forEach((ele) => {
-                        if (ele.name in requestObj.args) {
-                            // convert the index over to an array. For rare cases with multiple inputs with the same name.
-                            requestObj.args[ele.name] = [requestObj.args[ele.name], ele.value];
-                        } else {
-                            if (Array.isArray(requestObj.args[ele.name])) {
-                                requestObj.args[ele.name].push(ele.value);
-                            } else {
-                                requestObj.args[ele.name] = ele.value;
-                            }
-                        }
-                    });
-
                     let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
+					if(onRequestDataSend!=null){
+						var isRejected = false;
+						var requestObj = {
+							type: "Form",
+							args: {},
+							url: event.target.action,
+							method: event.target.method,
+							reject: function () {
+								isRejected = true;
+							}
+						}
 
-                    var newRequestObj = await onRequestDataSend(requestObj);
+						paramElements.forEach((ele) => {
+							if (ele.name in requestObj.args) {
+								// convert the index over to an array. For rare cases with multiple inputs with the same name.
+								requestObj.args[ele.name] = [requestObj.args[ele.name], ele.value];
+							} else {
+								if (Array.isArray(requestObj.args[ele.name])) {
+									requestObj.args[ele.name].push(ele.value);
+								} else {
+									requestObj.args[ele.name] = ele.value;
+								}
+							}
+						});
 
-                    if (!isRejected) {
-                        var formString = "<form style='display:none;' id='injected-form-submission' action='" + newRequestObj.url + "' method='" + newRequestObj.method + "'>";
-                        for (let[arg, value]of Object.entries(newRequestObj.args)) {
-                            if (Array.isArray(value)) {
-                                for (var v of value) {
-                                    formString += '<input value="' + v + '" name="' + arg + '">'
-                                }
-                            } else {
-                                formString += '<input value="' + value + '" name="' + arg + '">'
-                            }
-                        }
-                        //formString += "<input type='submit' id='injected-form-submission-button'>";
-                        formString += "</form>"
-                        var container = document.createElement("div");
-                        container.innerHTML = formString;
-                        document.body.appendChild(container);
-                        document.getElementById("injected-form-submission").submit();
-                    }
+						
+						var newRequestObj = await onRequestDataSend(requestObj);
+
+						if (!isRejected) {
+							var formString = "<form style='display:none;' id='injected-form-submission' action='" + newRequestObj.url + "' method='" + newRequestObj.method + "'>";
+							for (let[arg, value]of Object.entries(newRequestObj.args)) {
+								if (Array.isArray(value)) {
+									for (var v of value) {
+										formString += '<input value="' + v + '" name="' + arg + '">';
+									}
+								} else {
+									formString += '<input value="' + value + '" name="' + arg + '">';
+								}
+							}
+							//formString += "<input type='submit' id='injected-form-submission-button'>";
+							formString += "</form>"
+							var container = document.createElement("div");
+							container.innerHTML = formString;
+							document.body.appendChild(container);
+							document.getElementById("injected-form-submission").submit();
+						}
+					}
                 } else {
                     // we prompt them another form with all of the information filled in but without any validation they had on it.
                     await promptForm(event.target);
@@ -787,16 +800,17 @@ console.log("This page is currently intercepting all Ajax requests");
 					eventRef = async function (event) {
 						var foundFilter = matchesUrlFilters(this.url);
 						if (foundFilter != null) {
-							event = makeWritable(event);
-							let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
-							let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
-							var isRejected = false;
-							event.reject = function () {
-								isRejected = true;
-							}
 							
-							// Make sure when we ran eval that they created the method.
+							let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
 							if(onRequestDataReturn!=null){
+								event = makeWritable(event);
+								var isRejected = false;
+								event.reject = function () {
+									isRejected = true;
+								}
+								
+								// Make sure when we ran eval that they created the method.
+								
 								event = await onRequestDataReturn(event);
 								if (!isRejected) {
 									handler.bind(this)(event);
@@ -824,15 +838,16 @@ console.log("This page is currently intercepting all Ajax requests");
 				if (foundFilter != null) {
 					let handler = arguments[1];
 					arguments[1] = async function (event) {
-						event = makeWritable(event);
-						let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
 						let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
-						let isRejected = false;
-						event.reject = function () {
-							isRejected = true;
-						}
-						// Make sure when we ran eval that they created the method.
 						if(onRequestDataReturn != null){
+							event = makeWritable(event);
+							
+							let isRejected = false;
+							event.reject = function () {
+								isRejected = true;
+							}
+							// Make sure when we ran eval that they created the method.
+							
 							event = await onRequestDataReturn(event);
 							if (!isRejected) {
 								handler.bind(thisRef)(event);

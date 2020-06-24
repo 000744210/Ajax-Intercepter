@@ -35,7 +35,7 @@ Tips
 --
 - Instead of manually writing the Domain url, go to the domain you will be running it on. Create a domain group and it will autofill the page's url into the field.
 - Instead of manually writing the API url, have the domain group running and perform an action to activate the API. The API will be logged in the 'Found API' section.
-- When an API contains a dynamic url path. Use the * wildcard character to capture it. Example: 
+- When an API contains a dynamic url path, use the * wildcard character to capture it. Example: 
 api.example.com/searchid/5236 to api.example.com/searchid/*
 - If you want more control or automation of the modification you can use the programming interface with the advanced automation option to edit the request.
 
@@ -134,9 +134,9 @@ This is the list of objects sent to <kbd>onRequestDataSend</kbd> based by the ty
       }
 
 
-<kbd>onRequestDataReturn</kbd> is the data the website will be receiving.
+<kbd>onRequestDataReturn</kbd> is an interception of the data the server sends to the webpage. The parameter <kbd>event</kbd> contains the event data which is modifiable. The object sent to <kbd>onRequestDataReturn</kbd> is different depending on which AJAX method is used to send the request.
 
-This is the list of objects sent to <kbd>onRequestDataReturn</kbd> based by the type of request.
+This is the list of objects sent to <kbd>onRequestDataReturn</kbd> based by the type if request.
 
 - XmlHttpRequest
 
