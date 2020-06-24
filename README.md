@@ -139,6 +139,7 @@ This is the list of objects sent to <kbd>onRequestDataSend</kbd> based by the ty
 This is the list of objects sent to <kbd>onRequestDataReturn</kbd> based by the type of request.
 
 - XmlHttpRequest
+
 	The parameter will contain the XmlHttpRequest object. The object properties are modifiable.
 - Fetch
               
@@ -147,8 +148,10 @@ This is the list of objects sent to <kbd>onRequestDataReturn</kbd> based by the 
           data: "" // body of the fetch data
       }
  - WebSocket
+ 
      The parameter will contain a modifiable [Message Event]([https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent](https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent)) object.
-     The event contains a reject function to drop the packet.
+     
+	 The event contains a reject function to drop the packet.
 
 
 Tips:
