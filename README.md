@@ -149,10 +149,11 @@ This is the list of objects sent to <kbd>onRequestDataReturn</kbd> based by the 
       }
  - WebSocket
  
-     The parameter will contain a modifiable [Message Event]([https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent](https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent)) object.
+     The parameter will contain a modifiable [Message Event](https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent) object.
      
 	 The event contains a reject function to drop the packet.
 
 
 Tips:
 - console.log the object to identify what object is passed to the event.
+- if you don't need <kbd>onRequestDataSend</kbd> or  <kbd>onRequestDataReturn</kbd> then delete the method from the script. It will increase the website's stability.
