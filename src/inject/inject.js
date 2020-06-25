@@ -96,11 +96,11 @@ chrome.storage.local.get(["domainGroupData"], function (result) {
                 var libSet = new Set();
                 for(let groupId in urls){
                     urls[groupId].libs.split("\n").forEach(function(lib){
-						
+                        
                         lib = lib.trim();
                         if(lib.length>1){
-							libSet.add(lib);
-						}
+                            libSet.add(lib);
+                        }
                     })
                     
                 }

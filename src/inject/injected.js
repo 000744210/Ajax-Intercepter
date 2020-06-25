@@ -10,11 +10,11 @@ console.log("This page is currently intercepting all Ajax requests");
     // The onSend will return /newapi since that's the one being used to call the request. No site should be doing 2 open calls like above but it could happen.
     xmlHttpRequestTracker = {};
     xmlHttpRequestTracker.history = [];
-	xmlHttpRequestTracker.urlMap = new Map();
-	xmlHttpRequestTracker.getXmlHttpRequestUrl = function(xmlHttpRequestObject){
-		return xmlHttpRequestTracker.urlMap.get(xmlHttpRequestObject)
-	}
-	
+    xmlHttpRequestTracker.urlMap = new Map();
+    xmlHttpRequestTracker.getXmlHttpRequestUrl = function(xmlHttpRequestObject){
+        return xmlHttpRequestTracker.urlMap.get(xmlHttpRequestObject)
+    }
+    
     xmlHttpRequestTracker.onSend = function (xmlHttpRequestObject) {
         var headers = {}
         for (i = xmlHttpRequestTracker.history.length - 1; i >= 0; i--) { // loop though our open() history in reverse to read it by most recently added.
@@ -35,9 +35,9 @@ console.log("This page is currently intercepting all Ajax requests");
         }
     }
     xmlHttpRequestTracker.onOpen = function (xmlHttpRequestObject, arguments) {
-		
-		this.urlMap.set(xmlHttpRequestObject,arguments[1])
-		
+        
+        this.urlMap.set(xmlHttpRequestObject,arguments[1])
+        
         xmlHttpRequestTracker.history.push({
             eventName: "open",
             requestObject: xmlHttpRequestObject,
@@ -53,78 +53,78 @@ console.log("This page is currently intercepting all Ajax requests");
             value: value
         });
     }
-	
-	
-	var filters = Object.entries(_FILTER_URLS);
-	
-	// the location where our evaluated user's code is stored.
-	var filterMethods = {}
-	for (let [key, value] of filters) {
-		
-		// assign an id to every filter.
-		// id is used for a lookup for the filterMethods object
-		value.id = key;
-		
-		let isEvaluated = false;
-		let filterMethod = null;
-		Object.defineProperty(filterMethods, key, {
-			// The purpose of this is that we need to wait for librarys to load in before we call eval.
-			// By the time the code gets to accessing the filterMethods the entire website would be loaded.
-			get:function(){
-				if(!isEvaluated){
-					(function(onRequestDataSend=null,onRequestDataReturn=null){
-						eval(value.code);
-						filterMethod = {
-							'onRequestDataSend':onRequestDataSend,
-							'onRequestDataReturn':onRequestDataReturn
-						};
-						isEvaluated = true;
-					})();			
-				}
-				return filterMethod;
-			}
+    
+    
+    var filters = Object.entries(_FILTER_URLS);
+    
+    // the location where our evaluated user's code is stored.
+    var filterMethods = {}
+    for (let [key, value] of filters) {
+        
+        // assign an id to every filter.
+        // id is used for a lookup for the filterMethods object
+        value.id = key;
+        
+        let isEvaluated = false;
+        let filterMethod = null;
+        Object.defineProperty(filterMethods, key, {
+            // The purpose of this is that we need to wait for librarys to load in before we call eval.
+            // By the time the code gets to accessing the filterMethods the entire website would be loaded.
+            get:function(){
+                if(!isEvaluated){
+                    (function(onRequestDataSend=null,onRequestDataReturn=null){
+                        eval(value.code);
+                        filterMethod = {
+                            'onRequestDataSend':onRequestDataSend,
+                            'onRequestDataReturn':onRequestDataReturn
+                        };
+                        isEvaluated = true;
+                    })();            
+                }
+                return filterMethod;
+            }
         });
-	}
-	
-	/*
-		logAPI inserts a DOM object into the DOM for storing a log of APIs found.
-		This is due to a limitation with extensions. The only way to share 
-		information is through the usage of the DOM. This is insecure hense why they tried to prevent it.
-	*/
-	logHistory = new Set();
+    }
+    
+    /*
+        logAPI inserts a DOM object into the DOM for storing a log of APIs found.
+        This is due to a limitation with extensions. The only way to share 
+        information is through the usage of the DOM. This is insecure hense why they tried to prevent it.
+    */
+    logHistory = new Set();
     function logAPI(url, params) {
         logger = document.querySelector("html > logger");
         if (logger) {
             var url = relativeToAbsolute(url);
-			
+            
             var parsedUrl = parseUrl(url);
-			
+            
             // https://www.google.com/home?q=hello+world would be https://www.google.com/home
             var apiUrl = parsedUrl.protocol + "//" + parsedUrl.hostname + parsedUrl.pathname;
             
-			var numberRegex = /\/\d+/gi; // detects a forwards slash and a sequence of numbers: /346
-			
-			// https://www.google.com/search/234 would be  https://www.google.com/search/* to compress the api list
-			apiUrl = apiUrl.replace(numberRegex,"/*")
-			
-			
-			// To increase performance we only append to the logger if the api has not been logged this session.
-			// Heavy use apis could slow down a browser a lot without this.
-			if(!logHistory.has(apiUrl)){
-				logHistory.add(apiUrl);
-				var urlParams = parsedUrl.search.split("&");
-				urlParamsString = ",";
-				urlParams.forEach(function (paramPair) {
-					var pair = paramPair.split("=");
-					urlParamsString += pair[0].replace("?", "") + ",";
-				})
-				//console.log(urlParamsString);
-				var api = document.createElement("api");
-				api.dataset.url = apiUrl;
-				api.dataset.params = params + urlParamsString;
+            var numberRegex = /\/\d+/gi; // detects a forwards slash and a sequence of numbers: /346
+            
+            // https://www.google.com/search/234 would be  https://www.google.com/search/* to compress the api list
+            apiUrl = apiUrl.replace(numberRegex,"/*")
+            
+            
+            // To increase performance we only append to the logger if the api has not been logged this session.
+            // Heavy use apis could slow down a browser a lot without this.
+            if(!logHistory.has(apiUrl)){
+                logHistory.add(apiUrl);
+                var urlParams = parsedUrl.search.split("&");
+                urlParamsString = ",";
+                urlParams.forEach(function (paramPair) {
+                    var pair = paramPair.split("=");
+                    urlParamsString += pair[0].replace("?", "") + ",";
+                })
+                //console.log(urlParamsString);
+                var api = document.createElement("api");
+                api.dataset.url = apiUrl;
+                api.dataset.params = params + urlParamsString;
 
-				logger.appendChild(api);
-			}
+                logger.appendChild(api);
+            }
         }
     }
 
@@ -360,8 +360,8 @@ console.log("This page is currently intercepting all Ajax requests");
         var foundFilter = matchesUrlFilters(url);
         if (foundFilter == null){
             return proxyFetch(url, options);
-		}
-		
+        }
+        
         if (foundFilter.isAutomated) {
             var isRejected = false;
             var requestObj = {
@@ -374,45 +374,45 @@ console.log("This page is currently intercepting all Ajax requests");
             };
 
             let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
-			let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
-			if(onRequestDataSend!=null){
-				var newRequestObj = await onRequestDataSend(requestObj);
-				if (!isRejected  ) {
-					if(onRequestDataReturn!=null){
-						let fetchReturn = proxyFetch(newRequestObj.url, newRequestObj.options);
-						return new Promise(function(resolve,reject){
-							fetchReturn.then(function(data){
-								data.text().then(function(text){
-									let requestObj {
-										type: 'Fetch',
-										data: text,
-									}
-									
-									onRequestDataReturn(requestObj).then(function(newData){
-										// create a new response for the modified body
-										let dataResponse = new Response(newData.data,{
-											status:data.status,
-											statusText:data.statusText,
-											headers:data.headers
-										});
+            let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
+            if(onRequestDataSend!=null){
+                var newRequestObj = await onRequestDataSend(requestObj);
+                if (!isRejected  ) {
+                    if(onRequestDataReturn!=null){
+                        let fetchReturn = proxyFetch(newRequestObj.url, newRequestObj.options);
+                        return new Promise(function(resolve,reject){
+                            fetchReturn.then(function(data){
+                                data.text().then(function(text){
+                                    let requestObj {
+                                        type: 'Fetch',
+                                        data: text,
+                                    }
+                                    
+                                    onRequestDataReturn(requestObj).then(function(newData){
+                                        // create a new response for the modified body
+                                        let dataResponse = new Response(newData.data,{
+                                            status:data.status,
+                                            statusText:data.statusText,
+                                            headers:data.headers
+                                        });
 
-										resolve(dataResponse);
-									});	
-								})
-								
-							}).catch(function(data){
-								reject(data);
-							})
-						})
-					}else{
-						return proxyFetch(newRequestObj.url, newRequestObj.options);
-					}
-				}
-			}else{
-				// todo: fix this bug. it does not intercept the return data of this request because they did not define a onRequestDataSend method
-				// I have to refactor the mess of code from above into a function and reuse it on this fetch call.
-				return proxyFetch(url, options);
-			}
+                                        resolve(dataResponse);
+                                    });    
+                                })
+                                
+                            }).catch(function(data){
+                                reject(data);
+                            })
+                        })
+                    }else{
+                        return proxyFetch(newRequestObj.url, newRequestObj.options);
+                    }
+                }
+            }else{
+                // todo: fix this bug. it does not intercept the return data of this request because they did not define a onRequestDataSend method
+                // I have to refactor the mess of code from above into a function and reuse it on this fetch call.
+                return proxyFetch(url, options);
+            }
         } else {
 
             var headers = options.headers || {}
@@ -529,187 +529,187 @@ console.log("This page is currently intercepting all Ajax requests");
 
             return proxiedSend.apply(this, [].slice.call(arguments));
         } else {
-			let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
-			if(onRequestDataSend!=null){
-				var isRejected = false;
-				var requestObj = {
-					type: 'XmlHttpRequest',
-					args: {},
-					url: pairedOpenArguments.url.split('?')[0],
-					method: pairedOpenArguments.method,
-					headers: pairedOpenArguments.headers,
-					body: arguments[0],
-					reject: function () {
-						isRejected = true;
-					}
-				}
+            let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
+            if(onRequestDataSend!=null){
+                var isRejected = false;
+                var requestObj = {
+                    type: 'XmlHttpRequest',
+                    args: {},
+                    url: pairedOpenArguments.url.split('?')[0],
+                    method: pairedOpenArguments.method,
+                    headers: pairedOpenArguments.headers,
+                    body: arguments[0],
+                    reject: function () {
+                        isRejected = true;
+                    }
+                }
 
-				var params = new URLSearchParams(relativeToAbsolute(pairedOpenArguments.url).split('?')[1]);
+                var params = new URLSearchParams(relativeToAbsolute(pairedOpenArguments.url).split('?')[1]);
 
-				var paramsObj = Array.from(params.keys()).reduce(
-						(acc, val) => ({
-							...acc,
-							[val]: params.get(val)
-						}), {});
+                var paramsObj = Array.from(params.keys()).reduce(
+                        (acc, val) => ({
+                            ...acc,
+                            [val]: params.get(val)
+                        }), {});
 
-				requestObj.args = paramsObj;
+                requestObj.args = paramsObj;
 
-				
+                
 
-				var newRequestObj = await onRequestDataSend(requestObj);
+                var newRequestObj = await onRequestDataSend(requestObj);
 
-				if (!isRejected) {
-					
-					var withCredentials = this.withCredentials;
-					var responseType = this.responseType;
-					
-					proxiedOpen.apply(this, [].slice.call([newRequestObj.method, newRequestObj.url]))
+                if (!isRejected) {
+                    
+                    var withCredentials = this.withCredentials;
+                    var responseType = this.responseType;
+                    
+                    proxiedOpen.apply(this, [].slice.call([newRequestObj.method, newRequestObj.url]))
 
-					for (const header in newRequestObj.headers) {
-						proxiedSetRequestHeader.apply(this, [].slice.call([header, newRequestObj.headers[header]]));
-					}
-					
-					this.withCredentials = withCredentials;
-					this.responseType = responseType;
-					
-					proxiedSend.apply(this, [].slice.call([newRequestObj.body]));
-				}
-			}else{
-				return proxiedSend.apply(this, [].slice.call(arguments));
-			}
+                    for (const header in newRequestObj.headers) {
+                        proxiedSetRequestHeader.apply(this, [].slice.call([header, newRequestObj.headers[header]]));
+                    }
+                    
+                    this.withCredentials = withCredentials;
+                    this.responseType = responseType;
+                    
+                    proxiedSend.apply(this, [].slice.call([newRequestObj.body]));
+                }
+            }else{
+                return proxiedSend.apply(this, [].slice.call(arguments));
+            }
         }
 
     };
 
-	// xmlHttpRequest on data return
-	(function(){
-		var handleHandler = new Map();
-		var eventRef = null;
-		var sourceHandler = null;
-		
-		Object.defineProperty(window.XMLHttpRequest.prototype, "onload", {
-			get: function () {
-				return sourceHandler;
-			},
-			set: function (handler) {
+    // xmlHttpRequest on data return
+    (function(){
+        var handleHandler = new Map();
+        var eventRef = null;
+        var sourceHandler = null;
+        
+        Object.defineProperty(window.XMLHttpRequest.prototype, "onload", {
+            get: function () {
+                return sourceHandler;
+            },
+            set: function (handler) {
 
-				sourceHandler = handler;
-				if (eventRef) {
-					proxiedRemoveEventListener.apply(this, ["load", eventRef]);
-				}
-				if (typeof(handler) == "function") {
-					eventRef = async function (event) {
-						var url = xmlHttpRequestTracker.getXmlHttpRequestUrl(this);
-						
-						var foundFilter = matchesUrlFilters(url);
-						if (foundFilter != null) {
-							
-							let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
-							if(onRequestDataReturn!=null){
-								let writableObj = makeWritable(this);
-								var isRejected = false;
-								writableObj.reject = function () {
-									isRejected = true;
-								}
-								
-								// Make sure when we ran eval that they created the method.
-							
-								let thisRef = await onRequestDataReturn(writableObj);
-								if (!isRejected) {
-									handler.bind(thisRef)(event);
-								}
-							}else{
-								handler.bind(this)(event)
-							}
-						} else {
-							handler.bind(this)(event);
-						}
-					}
-					proxiedAddEventListener.apply(this, ["load", eventRef]);
-				} else {
-					eventRef = null;
-				}
-			}
-		});
+                sourceHandler = handler;
+                if (eventRef) {
+                    proxiedRemoveEventListener.apply(this, ["load", eventRef]);
+                }
+                if (typeof(handler) == "function") {
+                    eventRef = async function (event) {
+                        var url = xmlHttpRequestTracker.getXmlHttpRequestUrl(this);
+                        
+                        var foundFilter = matchesUrlFilters(url);
+                        if (foundFilter != null) {
+                            
+                            let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
+                            if(onRequestDataReturn!=null){
+                                let writableObj = makeWritable(this);
+                                var isRejected = false;
+                                writableObj.reject = function () {
+                                    isRejected = true;
+                                }
+                                
+                                // Make sure when we ran eval that they created the method.
+                            
+                                let thisRef = await onRequestDataReturn(writableObj);
+                                if (!isRejected) {
+                                    handler.bind(thisRef)(event);
+                                }
+                            }else{
+                                handler.bind(this)(event)
+                            }
+                        } else {
+                            handler.bind(this)(event);
+                        }
+                    }
+                    proxiedAddEventListener.apply(this, ["load", eventRef]);
+                } else {
+                    eventRef = null;
+                }
+            }
+        });
 
-		var proxiedAddEventListener = window.XMLHttpRequest.prototype.addEventListener;
-		window.XMLHttpRequest.prototype.addEventListener = async function () {
-			if (arguments[0] == "load") {
-				let handler = arguments[1];
-				let xmlObject = this;
-				arguments[1] = async function (event) {
-					let url = xmlHttpRequestTracker.getXmlHttpRequestUrl(xmlObject);
-					let foundFilter = matchesUrlFilters(url);
-					if (foundFilter != null) {
-						let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
-						if(onRequestDataReturn != null){
-							let writableObj = makeWritable(this);
-							
-							let isRejected = false;
-							writableObj.reject = function () {
-								isRejected = true;
-							}
-							// Make sure when we ran eval that they created the method.
-						
-							let thisRef = await onRequestDataReturn(writableObj);
-							if (!isRejected) {
-								handler.bind(thisRef)(event);
-								//handler(event);
-							}
-						}else{
-							handler.bind(this)(event);
-						}
-					}else{
-						handler.bind(this)(event);
-					}
-				}
+        var proxiedAddEventListener = window.XMLHttpRequest.prototype.addEventListener;
+        window.XMLHttpRequest.prototype.addEventListener = async function () {
+            if (arguments[0] == "load") {
+                let handler = arguments[1];
+                let xmlObject = this;
+                arguments[1] = async function (event) {
+                    let url = xmlHttpRequestTracker.getXmlHttpRequestUrl(xmlObject);
+                    let foundFilter = matchesUrlFilters(url);
+                    if (foundFilter != null) {
+                        let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
+                        if(onRequestDataReturn != null){
+                            let writableObj = makeWritable(this);
+                            
+                            let isRejected = false;
+                            writableObj.reject = function () {
+                                isRejected = true;
+                            }
+                            // Make sure when we ran eval that they created the method.
+                        
+                            let thisRef = await onRequestDataReturn(writableObj);
+                            if (!isRejected) {
+                                handler.bind(thisRef)(event);
+                                //handler(event);
+                            }
+                        }else{
+                            handler.bind(this)(event);
+                        }
+                    }else{
+                        handler.bind(this)(event);
+                    }
+                }
 
-				if (!handleHandler.has(this)) {
-					var map = new Map();
-					map.set(handler, arguments[1]);
-					handleHandler.set(this, map);
+                if (!handleHandler.has(this)) {
+                    var map = new Map();
+                    map.set(handler, arguments[1]);
+                    handleHandler.set(this, map);
 
-					proxiedAddEventListener.apply(this, [].slice.call(arguments));
-				} else if (!handleHandler.get(this).has(handler)) {
-					handleHandler.get(this).set(handler, arguments[1]);
-					proxiedAddEventListener.apply(this, [].slice.call(arguments));
-				}
-				
-			} else {
-				proxiedAddEventListener.apply(this, [].slice.call(arguments));
-			}
+                    proxiedAddEventListener.apply(this, [].slice.call(arguments));
+                } else if (!handleHandler.get(this).has(handler)) {
+                    handleHandler.get(this).set(handler, arguments[1]);
+                    proxiedAddEventListener.apply(this, [].slice.call(arguments));
+                }
+                
+            } else {
+                proxiedAddEventListener.apply(this, [].slice.call(arguments));
+            }
 
-		}
+        }
 
-		var proxiedRemoveEventListener = window.XMLHttpRequest.prototype.removeEventListener;
-		window.XMLHttpRequest.prototype.removeEventListener = function () {
-			let url = xmlHttpRequestTracker.getXmlHttpRequestUrl(this);
-			var foundFilter = matchesUrlFilters(url);
-			if (foundFilter != null) {
-				if (arguments[0] == "load") {
-					arguments[1] = handleHandler.get(this).get(arguments[1]);
-				}
-			}
-			proxiedRemoveEventListener.apply(this, [].slice.call(arguments));
+        var proxiedRemoveEventListener = window.XMLHttpRequest.prototype.removeEventListener;
+        window.XMLHttpRequest.prototype.removeEventListener = function () {
+            let url = xmlHttpRequestTracker.getXmlHttpRequestUrl(this);
+            var foundFilter = matchesUrlFilters(url);
+            if (foundFilter != null) {
+                if (arguments[0] == "load") {
+                    arguments[1] = handleHandler.get(this).get(arguments[1]);
+                }
+            }
+            proxiedRemoveEventListener.apply(this, [].slice.call(arguments));
 
-		}
+        }
 
-		function makeWritable(event) {
-			//alert("middleman")
-			for (prop in event) {
-				try {
-					Object.defineProperty(event, prop, {
-						value: event[prop],
-						writable: true,
-						configurable: true
-					})
-				} catch (e) {}
-				// we can not define event.isTrusted due to security in chrome.
-			}
-			return event;
-		}
-	})();	
-	
+        function makeWritable(event) {
+            //alert("middleman")
+            for (prop in event) {
+                try {
+                    Object.defineProperty(event, prop, {
+                        value: event[prop],
+                        writable: true,
+                        configurable: true
+                    })
+                } catch (e) {}
+                // we can not define event.isTrusted due to security in chrome.
+            }
+            return event;
+        }
+    })();    
+    
     // Intercept all form submissions
     window.onload = function (event) {
         document.body.addEventListener('submit', async function (event) {
@@ -725,53 +725,53 @@ console.log("This page is currently intercepting all Ajax requests");
                 event.preventDefault(); // prevents the form being submitted.
                 if (foundFilter.isAutomated) {
                     let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
-					if(onRequestDataSend!=null){
-						var isRejected = false;
-						var requestObj = {
-							type: "Form",
-							args: {},
-							url: event.target.action,
-							method: event.target.method,
-							reject: function () {
-								isRejected = true;
-							}
-						}
+                    if(onRequestDataSend!=null){
+                        var isRejected = false;
+                        var requestObj = {
+                            type: "Form",
+                            args: {},
+                            url: event.target.action,
+                            method: event.target.method,
+                            reject: function () {
+                                isRejected = true;
+                            }
+                        }
 
-						paramElements.forEach((ele) => {
-							if (ele.name in requestObj.args) {
-								// convert the index over to an array. For rare cases with multiple inputs with the same name.
-								requestObj.args[ele.name] = [requestObj.args[ele.name], ele.value];
-							} else {
-								if (Array.isArray(requestObj.args[ele.name])) {
-									requestObj.args[ele.name].push(ele.value);
-								} else {
-									requestObj.args[ele.name] = ele.value;
-								}
-							}
-						});
+                        paramElements.forEach((ele) => {
+                            if (ele.name in requestObj.args) {
+                                // convert the index over to an array. For rare cases with multiple inputs with the same name.
+                                requestObj.args[ele.name] = [requestObj.args[ele.name], ele.value];
+                            } else {
+                                if (Array.isArray(requestObj.args[ele.name])) {
+                                    requestObj.args[ele.name].push(ele.value);
+                                } else {
+                                    requestObj.args[ele.name] = ele.value;
+                                }
+                            }
+                        });
 
-						
-						var newRequestObj = await onRequestDataSend(requestObj);
+                        
+                        var newRequestObj = await onRequestDataSend(requestObj);
 
-						if (!isRejected) {
-							var formString = "<form style='display:none;' id='injected-form-submission' action='" + newRequestObj.url + "' method='" + newRequestObj.method + "'>";
-							for (let[arg, value]of Object.entries(newRequestObj.args)) {
-								if (Array.isArray(value)) {
-									for (var v of value) {
-										formString += '<input value="' + v + '" name="' + arg + '">';
-									}
-								} else {
-									formString += '<input value="' + value + '" name="' + arg + '">';
-								}
-							}
-							//formString += "<input type='submit' id='injected-form-submission-button'>";
-							formString += "</form>"
-							var container = document.createElement("div");
-							container.innerHTML = formString;
-							document.body.appendChild(container);
-							document.getElementById("injected-form-submission").submit();
-						}
-					}
+                        if (!isRejected) {
+                            var formString = "<form style='display:none;' id='injected-form-submission' action='" + newRequestObj.url + "' method='" + newRequestObj.method + "'>";
+                            for (let[arg, value]of Object.entries(newRequestObj.args)) {
+                                if (Array.isArray(value)) {
+                                    for (var v of value) {
+                                        formString += '<input value="' + v + '" name="' + arg + '">';
+                                    }
+                                } else {
+                                    formString += '<input value="' + value + '" name="' + arg + '">';
+                                }
+                            }
+                            //formString += "<input type='submit' id='injected-form-submission-button'>";
+                            formString += "</form>"
+                            var container = document.createElement("div");
+                            container.innerHTML = formString;
+                            document.body.appendChild(container);
+                            document.getElementById("injected-form-submission").submit();
+                        }
+                    }
                 } else {
                     // we prompt them another form with all of the information filled in but without any validation they had on it.
                     await promptForm(event.target);
@@ -779,156 +779,156 @@ console.log("This page is currently intercepting all Ajax requests");
             }
         })
     };
-	// Websocket on data return
-	(function(){
-		var handleHandler = new Map();
-		var eventRef = null;
-		var sourceHandler = null;
+    // Websocket on data return
+    (function(){
+        var handleHandler = new Map();
+        var eventRef = null;
+        var sourceHandler = null;
 
-		Object.defineProperty(WebSocket.prototype, "onmessage", {
-			get: function () {
-				return sourceHandler;
-			},
-			set: function (handler) {
-				logAPI(this.url, "");
+        Object.defineProperty(WebSocket.prototype, "onmessage", {
+            get: function () {
+                return sourceHandler;
+            },
+            set: function (handler) {
+                logAPI(this.url, "");
 
-				sourceHandler = handler;
-				if (eventRef) {
-					proxiedRemoveEventListener.apply(this, ["message", eventRef]);
-				}
-				if (typeof(handler) == "function") {
-					eventRef = async function (event) {
-						var foundFilter = matchesUrlFilters(this.url);
-						if (foundFilter != null) {
-							
-							let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
-							if(onRequestDataReturn!=null){
-								event = makeWritable(event);
-								var isRejected = false;
-								event.reject = function () {
-									isRejected = true;
-								}
-								
-								// Make sure when we ran eval that they created the method.
-								
-								event = await onRequestDataReturn(event);
-								if (!isRejected) {
-									handler.bind(this)(event);
-								}
-							}else{
-								handler.bind(this)(event)
-							}
-						} else {
-							handler.bind(this)(event);
-						}
-					}
-					proxiedAddEventListener.apply(this, ["message", eventRef]);
-				} else {
-					eventRef = null;
-				}
-			}
-		})
+                sourceHandler = handler;
+                if (eventRef) {
+                    proxiedRemoveEventListener.apply(this, ["message", eventRef]);
+                }
+                if (typeof(handler) == "function") {
+                    eventRef = async function (event) {
+                        var foundFilter = matchesUrlFilters(this.url);
+                        if (foundFilter != null) {
+                            
+                            let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
+                            if(onRequestDataReturn!=null){
+                                event = makeWritable(event);
+                                var isRejected = false;
+                                event.reject = function () {
+                                    isRejected = true;
+                                }
+                                
+                                // Make sure when we ran eval that they created the method.
+                                
+                                event = await onRequestDataReturn(event);
+                                if (!isRejected) {
+                                    handler.bind(this)(event);
+                                }
+                            }else{
+                                handler.bind(this)(event)
+                            }
+                        } else {
+                            handler.bind(this)(event);
+                        }
+                    }
+                    proxiedAddEventListener.apply(this, ["message", eventRef]);
+                } else {
+                    eventRef = null;
+                }
+            }
+        })
 
-		var proxiedAddEventListener = WebSocket.prototype.addEventListener;
-		WebSocket.prototype.addEventListener = async function () {
-			let thisRef = this;
-			logAPI(this.url, "")
-			if (arguments[0] == "message") {
-				var foundFilter = matchesUrlFilters(this.url);
-				if (foundFilter != null) {
-					let handler = arguments[1];
-					arguments[1] = async function (event) {
-						let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
-						if(onRequestDataReturn != null){
-							event = makeWritable(event);
-							
-							let isRejected = false;
-							event.reject = function () {
-								isRejected = true;
-							}
-							// Make sure when we ran eval that they created the method.
-							
-							event = await onRequestDataReturn(event);
-							if (!isRejected) {
-								handler.bind(thisRef)(event);
-							}
-						}else{
-							handler.bind(thisRef)(event);
-						}
-					}
+        var proxiedAddEventListener = WebSocket.prototype.addEventListener;
+        WebSocket.prototype.addEventListener = async function () {
+            let thisRef = this;
+            logAPI(this.url, "")
+            if (arguments[0] == "message") {
+                var foundFilter = matchesUrlFilters(this.url);
+                if (foundFilter != null) {
+                    let handler = arguments[1];
+                    arguments[1] = async function (event) {
+                        let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
+                        if(onRequestDataReturn != null){
+                            event = makeWritable(event);
+                            
+                            let isRejected = false;
+                            event.reject = function () {
+                                isRejected = true;
+                            }
+                            // Make sure when we ran eval that they created the method.
+                            
+                            event = await onRequestDataReturn(event);
+                            if (!isRejected) {
+                                handler.bind(thisRef)(event);
+                            }
+                        }else{
+                            handler.bind(thisRef)(event);
+                        }
+                    }
 
-					if (!handleHandler.has(this)) {
-						var map = new Map();
-						map.set(handler, arguments[1]);
-						handleHandler.set(this, map);
+                    if (!handleHandler.has(this)) {
+                        var map = new Map();
+                        map.set(handler, arguments[1]);
+                        handleHandler.set(this, map);
 
-						proxiedAddEventListener.apply(this, [].slice.call(arguments));
-					} else if (!handleHandler.get(this).has(handler)) {
-						handleHandler.get(this).set(handler, arguments[1]);
-						proxiedAddEventListener.apply(this, [].slice.call(arguments));
-					}
-				}
-			} else {
-				proxiedAddEventListener.apply(this, [].slice.call(arguments));
-			}
+                        proxiedAddEventListener.apply(this, [].slice.call(arguments));
+                    } else if (!handleHandler.get(this).has(handler)) {
+                        handleHandler.get(this).set(handler, arguments[1]);
+                        proxiedAddEventListener.apply(this, [].slice.call(arguments));
+                    }
+                }
+            } else {
+                proxiedAddEventListener.apply(this, [].slice.call(arguments));
+            }
 
-		}
+        }
 
-		var proxiedRemoveEventListener = WebSocket.prototype.removeEventListener;
-		WebSocket.prototype.removeEventListener = function () {
-			var foundFilter = matchesUrlFilters(this.url);
-			if (foundFilter != null) {
-				if (arguments[0] == "message") {
-					arguments[1] = handleHandler.get(this).get(arguments[1]);
-				}
-			}
-			proxiedRemoveEventListener.apply(this, [].slice.call(arguments));
+        var proxiedRemoveEventListener = WebSocket.prototype.removeEventListener;
+        WebSocket.prototype.removeEventListener = function () {
+            var foundFilter = matchesUrlFilters(this.url);
+            if (foundFilter != null) {
+                if (arguments[0] == "message") {
+                    arguments[1] = handleHandler.get(this).get(arguments[1]);
+                }
+            }
+            proxiedRemoveEventListener.apply(this, [].slice.call(arguments));
 
-		}
+        }
 
-		function makeWritable(event) {
-			//alert("middleman")
-			for (prop in event) {
-				try {
-					Object.defineProperty(event, prop, {
-						value: event[prop],
-						writable: true,
-						configurable: true
-					})
-				} catch (e) {}
-				// we can not define event.isTrusted due to security in chrome.
-			}
-			return event;
-		}
-	})();
-	
-	// websocket onsend
-	var proxiedWebSocketSend = WebSocket.prototype.send;
-	WebSocket.prototype.send = async function(){
-		var foundFilter = matchesUrlFilters(this.url);
-		if(foundFilter){
-			var isRejected = false;
-			var requestObj = {
-				type: 'WebSocket',
-				data: arguments[0],
-				reject: function () {
-					isRejected = true;
-				}
-			}			
-			let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
+        function makeWritable(event) {
+            //alert("middleman")
+            for (prop in event) {
+                try {
+                    Object.defineProperty(event, prop, {
+                        value: event[prop],
+                        writable: true,
+                        configurable: true
+                    })
+                } catch (e) {}
+                // we can not define event.isTrusted due to security in chrome.
+            }
+            return event;
+        }
+    })();
+    
+    // websocket onsend
+    var proxiedWebSocketSend = WebSocket.prototype.send;
+    WebSocket.prototype.send = async function(){
+        var foundFilter = matchesUrlFilters(this.url);
+        if(foundFilter){
+            var isRejected = false;
+            var requestObj = {
+                type: 'WebSocket',
+                data: arguments[0],
+                reject: function () {
+                    isRejected = true;
+                }
+            }            
+            let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
 
-			if (onRequestDataSend!=null){
-				var newRequestObj = await onRequestDataSend(requestObj);
+            if (onRequestDataSend!=null){
+                var newRequestObj = await onRequestDataSend(requestObj);
 
-				if (!isRejected) {
-					proxiedWebSocketSend.apply(this, [newRequestObj.data])
-				}		
-			}else{
-				proxiedWebSocketSend.apply(this, [].slice.call(arguments))
-			}
-		}else{
-			proxiedWebSocketSend.apply(this, [].slice.call(arguments))
-		}
-	}
-	
+                if (!isRejected) {
+                    proxiedWebSocketSend.apply(this, [newRequestObj.data])
+                }        
+            }else{
+                proxiedWebSocketSend.apply(this, [].slice.call(arguments))
+            }
+        }else{
+            proxiedWebSocketSend.apply(this, [].slice.call(arguments))
+        }
+    }
+    
 })()
