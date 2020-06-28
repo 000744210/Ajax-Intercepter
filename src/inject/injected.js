@@ -276,32 +276,7 @@ console.log("This page is currently intercepting all Ajax requests");
 
         });
     }
-
-        return new Promise(function (resolve) {
-            var swalConfig = {
-                html: `<label for='swal-input2'>Url</label><input name='swal-input2' id='swal-input2' style='width:100%'><br><br>` +
-`<label for='swal-input1'>Method</label><input name='swal-input1' id='swal-input1' style='width:100%'>`,
-                focusConfirm: false,
-                preConfirm: () => {
-                    resolve([document.getElementById("swal-input1").value, document.getElementById("swal-input2").value])
-                },
-                onBeforeOpen: () => {
-                    document.getElementById("swal-input1").value = data.url;
-                    document.getElementById("swal-input2").value = data.method;
-                },
-                showCancelButton: false,
-                allowOutsideClick: false
-            };
-
-            try {
-                Swal.getQueueStep();
-                Swal.insertQueueStep(swalConfig)
-            } catch (e) {
-                Swal.queue([swalConfig])
-            }
-        })
-
-    }
+	
     async function promptFetch(data) {
         return new Promise(function (resolve) {
             var swalConfig = {
@@ -430,7 +405,7 @@ console.log("This page is currently intercepting all Ajax requests");
                         return new Promise(function(resolve,reject){
                             fetchReturn.then(function(data){
                                 data.text().then(function(text){
-                                    let requestObj {
+                                    let requestObj = {
                                         type: 'Fetch',
                                         data: text,
                                     }
@@ -741,7 +716,7 @@ console.log("This page is currently intercepting all Ajax requests");
             //var foundFilter = matchesUrlFilters(url);
             //if (foundFilter != null) {
             if (arguments[0] == "load") {
-                if(handleHandler.has(this) && handleHandler.has(this).has(arguments[1])){
+                if(handleHandler.has(this) && handleHandler.get(this).has(arguments[1])){
                     arguments[1] = handleHandler.get(this).get(arguments[1]);
                 }
             }
