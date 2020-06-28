@@ -179,7 +179,54 @@ console.log("This page is currently intercepting all Ajax requests");
             }
         }
     }
+    
+    // https://stackoverflow.com/questions/486896/adding-a-parameter-to-the-url-with-javascript
+    function updateUrl(url, key, value) {
+        if (value !== undefined) {
+            value = encodeURI(value);
+        }
+        var hashIndex = url.indexOf("#") | 0;
+        if (hashIndex === -1) hashIndex = url.length | 0;
+        var urls = url.substring(0, hashIndex).split('?');
+        var baseUrl = urls[0];
+        var parameters = '';
+        var outPara = {};
+        if (urls.length > 1) {
+            parameters = urls[1];
+        }
+        if (parameters !== '') {
+            parameters = parameters.split('&');
+            for (k in parameters) {
+                var keyVal = parameters[k];
+                keyVal = keyVal.split('=');
+                var ekey = keyVal[0];
+                var evalue = '';
+                if (keyVal.length > 1) {
+                    evalue = keyVal[1];
+                }
+                outPara[ekey] = evalue;
+            }
+        }
 
+        if (value !== undefined) {
+            outPara[key] = value;
+        } else {
+            delete outPara[key];
+        }
+        parameters = [];
+        for (var k in outPara) {
+            parameters.push(k + '=' + outPara[k]);
+        }
+
+        var finalUrl = baseUrl;
+
+        if (parameters.length > 0) {
+            finalUrl += '?' + parameters.join('&');
+        }
+
+        return finalUrl + url.substring(hashIndex);
+    }
+    
     function escapeHtml(s) {
         return (s + '').replace(/[&<>"']/g, function (m) {
             return ({
@@ -563,12 +610,19 @@ console.log("This page is currently intercepting all Ajax requests");
                     var withCredentials = this.withCredentials;
                     var responseType = this.responseType;
                     
-                    proxiedOpen.apply(this, [].slice.call([newRequestObj.method, newRequestObj.url]))
+                    var argUrl = newRequestObj.url
+                    // apply arguments to the send url
+                    for (const [key, value] of Object.entries(newRequestObj.args)) {
+                        argUrl = updateUrl(argUrl,key,value);
+                    }
+                    
+                    proxiedOpen.apply(this, [].slice.call([newRequestObj.method, argUrl]))
 
                     for (const header in newRequestObj.headers) {
                         proxiedSetRequestHeader.apply(this, [].slice.call([header, newRequestObj.headers[header]]));
                     }
                     
+                    // not sure if this does anything but it's better safe than sorry.
                     this.withCredentials = withCredentials;
                     this.responseType = responseType;
                     
@@ -683,13 +737,15 @@ console.log("This page is currently intercepting all Ajax requests");
 
         var proxiedRemoveEventListener = window.XMLHttpRequest.prototype.removeEventListener;
         window.XMLHttpRequest.prototype.removeEventListener = function () {
-            let url = xmlHttpRequestTracker.getXmlHttpRequestUrl(this);
-            var foundFilter = matchesUrlFilters(url);
-            if (foundFilter != null) {
-                if (arguments[0] == "load") {
+            //let url = xmlHttpRequestTracker.getXmlHttpRequestUrl(this);
+            //var foundFilter = matchesUrlFilters(url);
+            //if (foundFilter != null) {
+            if (arguments[0] == "load") {
+                if(handleHandler.has(this) && handleHandler.has(this).has(arguments[1])){
                     arguments[1] = handleHandler.get(this).get(arguments[1]);
                 }
             }
+            //}
             proxiedRemoveEventListener.apply(this, [].slice.call(arguments));
 
         }
