@@ -86,7 +86,17 @@ function validURL(str) {
     '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
   return !!pattern.test(str);
 }
-
+    function escapeHtml(s) {
+        return (s + '').replace(/[&<>"']/g, function (m) {
+            return ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[m];
+        });
+    }
 chrome.storage.local.get(["domainGroupData"], function (result) {
 
     domains = result['domainGroupData'] || {}
@@ -165,7 +175,7 @@ chrome.storage.local.get(["domainGroupData"], function (result) {
                             loggedAPIs[api.url] = new Set(loggedAPIs[api.url])
                             api.params.forEach(function(param){
                                 if(param.length > 0){
-                                    loggedAPIs[api.url].add(param)
+                                    loggedAPIs[api.url].add(escapeHtml(param))
                                 }
                             });
                             loggedAPIs[api.url] = [...loggedAPIs[api.url]]
