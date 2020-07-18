@@ -578,7 +578,7 @@ console.log("This page is currently intercepting all Ajax requests");
 
                 
 
-                var newRequestObj = await onRequestDataSend(requestObj);
+                var newRequestObj = await onRequestDataSend.bind(this)(requestObj);
 
                 if (!isRejected) {
                     
@@ -643,7 +643,7 @@ console.log("This page is currently intercepting all Ajax requests");
                                 
                                 // Make sure when we ran eval that they created the method.
                             
-                                let thisRef = await onRequestDataReturn(writableObj);
+                                let thisRef = await onRequestDataReturn.bind(this)(writableObj);
                                 if (!isRejected) {
                                     handler.bind(thisRef)(event);
                                 }
@@ -678,9 +678,8 @@ console.log("This page is currently intercepting all Ajax requests");
                             writableObj.reject = function () {
                                 isRejected = true;
                             }
-                            // Make sure when we ran eval that they created the method.
-                        
-                            let thisRef = await onRequestDataReturn(writableObj);
+
+                            let thisRef = await onRequestDataReturn.bind(xmlObject)(writableObj);
                             if (!isRejected) {
                                 handler.bind(thisRef)(event);
                                 //handler(event);
@@ -822,7 +821,7 @@ console.log("This page is currently intercepting all Ajax requests");
             },
             set: function (handler) {
                 logAPI(this.url, "");
-
+				let thisRef = this;
                 sourceHandler = handler;
                 if (eventRef) {
                     proxiedRemoveEventListener.apply(this, ["message", eventRef]);
@@ -842,7 +841,7 @@ console.log("This page is currently intercepting all Ajax requests");
                                 
                                 // Make sure when we ran eval that they created the method.
                                 
-                                event = await onRequestDataReturn(event);
+                                event = await onRequestDataReturn.bind(thisRef)(event);
                                 if (!isRejected) {
                                     handler.bind(this)(event);
                                 }
@@ -879,7 +878,7 @@ console.log("This page is currently intercepting all Ajax requests");
                             }
                             // Make sure when we ran eval that they created the method.
                             
-                            event = await onRequestDataReturn(event);
+                            event = await onRequestDataReturn.bind(thisRef)(event);
                             if (!isRejected) {
                                 handler.bind(thisRef)(event);
                             }
@@ -949,7 +948,7 @@ console.log("This page is currently intercepting all Ajax requests");
             let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
 
             if (onRequestDataSend!=null){
-                var newRequestObj = await onRequestDataSend(requestObj);
+                var newRequestObj = await onRequestDataSend.bind(this)(requestObj);
 
                 if (!isRejected) {
                     proxiedWebSocketSend.apply(this, [newRequestObj.data])
