@@ -10,7 +10,7 @@ console.log("This page is currently intercepting all Ajax requests");
     // The onSend will return /newapi since that's the one being used to call the request. No site should be doing 2 open calls like above but it could happen.
     xmlHttpRequestTracker = {};
     xmlHttpRequestTracker.history = [];
-    xmlHttpRequestTracker.urlMap = new Map();
+    xmlHttpRequestTracker.urlMap = new Map(); // A very simple way to get an XmlHttpRequest's url instead of calling xmlHttpRequestTracker.onSend
     xmlHttpRequestTracker.getXmlHttpRequestUrl = function(xmlHttpRequestObject){
         return xmlHttpRequestTracker.urlMap.get(xmlHttpRequestObject)
     }
@@ -20,13 +20,13 @@ console.log("This page is currently intercepting all Ajax requests");
         for (i = xmlHttpRequestTracker.history.length - 1; i >= 0; i--) { // loop though our open() history in reverse to read it by most recently added.
             var historyObj = xmlHttpRequestTracker.history[i];
 
-            // because we don't have a getRequestHeader function, we need to give the headers to remake the request.
+            // because we don't have a XmlHttpRequest.getRequestHeaders function, we need to give the headers to remake the request.
             if (historyObj.requestObject == xmlHttpRequestObject && historyObj.eventName == "setRequestHeader") {
                 if (!(historyObj.header in headers)) {
                     headers[historyObj.header] = historyObj.value;
                 }
             } else if (historyObj.requestObject == xmlHttpRequestObject && historyObj.eventName == "open") { // if the two xmlHttpRequest objects from the open/close call are the same
-                return { // return the url that was used in the open call for that object
+                return { // return the url and headers that was used in the creation for that object
                     method: historyObj.arguments[0],
                     url: historyObj.arguments[1],
                     headers: headers
@@ -34,6 +34,8 @@ console.log("This page is currently intercepting all Ajax requests");
             }
         }
     }
+    // onOpen is called by our prototyped XmlHttpRequest.open function.
+    // This is used to gather the url assigned to the xmlHttpRequest object.
     xmlHttpRequestTracker.onOpen = function (xmlHttpRequestObject, arguments) {
         
         this.urlMap.set(xmlHttpRequestObject,arguments[1])
@@ -45,6 +47,8 @@ console.log("This page is currently intercepting all Ajax requests");
         });
     }
 
+	// onSetRequestHeader is called by our prototyped XmlHttpRequest.setRequestHeader function.
+    // This is used to gather the headers assigned to the xmlHttpRequest object.
     xmlHttpRequestTracker.onSetRequestHeader = function (xmlHttpRequestObject, header, value) {
         xmlHttpRequestTracker.history.push({
             requestObject: xmlHttpRequestObject,
@@ -54,7 +58,7 @@ console.log("This page is currently intercepting all Ajax requests");
         });
     }
     
-    
+    // _FILTER_URLS is injected into our webpage from /src/inject/inject.js
     var filters = Object.entries(_FILTER_URLS);
     
     // the location where our evaluated user's code is stored.
@@ -74,6 +78,7 @@ console.log("This page is currently intercepting all Ajax requests");
                 if(!isEvaluated){
                     (function(onRequestDataSend=null,onRequestDataReturn=null){
                         eval(value.code);
+						// after the eval, onRequestDataSend and onRequestDataReturn is assigned to the scope. The user does not need to assign both.
                         filterMethod = {
                             'onRequestDataSend':onRequestDataSend,
                             'onRequestDataReturn':onRequestDataReturn
@@ -150,7 +155,9 @@ console.log("This page is currently intercepting all Ajax requests");
         r.href = r.origin + r.pathname + r.search + r.hash;
         return m && r;
     };
-
+    
+	// Converts a relative url to the absolute path.
+	// Eg; /index.html -> https://github.com/index.html
     function relativeToAbsolute(url) {
         if (!url.startsWith("http://") && !url.startsWith("https://") && !url.startsWith("wss://") && !url.startsWith("ws://")) {
             if (url.startsWith("/")) {
@@ -162,17 +169,22 @@ console.log("This page is currently intercepting all Ajax requests");
         }
         return url;
     }
-
+    
+	// Does a wild card regex comparison to validate if they match.
+	// wildTest("google.com/search/*/","google.com/search/2346/") -> true
     function wildTest(wildcard, str) {
         let w = wildcard.replace(/[.+^${}()|[\]\\]/g, '\\$&'); // regexp escape
         const re = new RegExp(`^${w.replace(/\*/g,'.*').replace(/\?/g,'.')}$`, 'i');
         return re.test(str); // remove last 'i' above to have case sensitive
     }
-
+    
+	// When an api is called we need to know if the user has this the api as filter.
+	// If the url matches it will return the filter it match.
+	// To view the filters you can access them with the global _FILTER_URLS variable.
     function matchesUrlFilters(url) {
         url = relativeToAbsolute(url);
-            url = url.split('?')[0];
-            var filters = Object.entries(_FILTER_URLS);
+		url = url.split('?')[0];
+		var filters = Object.entries(_FILTER_URLS);
         for (let[key, value]of filters) {
             if (wildTest(value.url, url)) {
                 return value;
