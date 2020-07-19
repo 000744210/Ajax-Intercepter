@@ -47,7 +47,7 @@ console.log("This page is currently intercepting all Ajax requests");
         });
     }
 
-	// onSetRequestHeader is called by our prototyped XmlHttpRequest.setRequestHeader function.
+    // onSetRequestHeader is called by our prototyped XmlHttpRequest.setRequestHeader function.
     // This is used to gather the headers assigned to the xmlHttpRequest object.
     xmlHttpRequestTracker.onSetRequestHeader = function (xmlHttpRequestObject, header, value) {
         xmlHttpRequestTracker.history.push({
@@ -76,9 +76,9 @@ console.log("This page is currently intercepting all Ajax requests");
             // By the time the code gets to accessing the filterMethods the entire website would be loaded.
             get:function(){
                 if(!isEvaluated){
-                    (function(onRequestDataSend=null,onRequestDataReturn=null){
+                    (function(onRequestDataSend=null,onRequestDataReturn=null){ // added level of scope to sandbox each eval call. May not be needed.
                         eval(value.code);
-						// after the eval, onRequestDataSend and onRequestDataReturn is assigned to the scope. The user does not need to assign both.
+                        // after the eval, onRequestDataSend and onRequestDataReturn is assigned to the scope. The user does not need to assign both.
                         filterMethod = {
                             'onRequestDataSend':onRequestDataSend,
                             'onRequestDataReturn':onRequestDataReturn
@@ -94,7 +94,8 @@ console.log("This page is currently intercepting all Ajax requests");
     /*
         logAPI inserts a DOM object into the DOM for storing a log of APIs found.
         This is due to a limitation with extensions. The only way to share 
-        information is through the usage of the DOM. This is insecure hense why they tried to prevent it.
+        information between the extension and a website is through the usage of the DOM. This is insecure hense why they tried to prevent it.
+		View /src/inject/inject.js for how the extension obtains these DOM objects to add to the found api list.
     */
     logHistory = new Set();
     function logAPI(url, params) {
@@ -156,8 +157,8 @@ console.log("This page is currently intercepting all Ajax requests");
         return m && r;
     };
     
-	// Converts a relative url to the absolute path.
-	// Eg; /index.html -> https://github.com/index.html
+    // Converts a relative url to the absolute path.
+    // Eg; /index.html -> https://github.com/index.html
     function relativeToAbsolute(url) {
         if (!url.startsWith("http://") && !url.startsWith("https://") && !url.startsWith("wss://") && !url.startsWith("ws://")) {
             if (url.startsWith("/")) {
@@ -170,21 +171,21 @@ console.log("This page is currently intercepting all Ajax requests");
         return url;
     }
     
-	// Does a wild card regex comparison to validate if they match.
-	// wildTest("google.com/search/*/","google.com/search/2346/") -> true
+    // Does a wild card regex comparison to validate if they match.
+    // wildTest("google.com/search/*/","google.com/search/2346/") -> true
     function wildTest(wildcard, str) {
         let w = wildcard.replace(/[.+^${}()|[\]\\]/g, '\\$&'); // regexp escape
         const re = new RegExp(`^${w.replace(/\*/g,'.*').replace(/\?/g,'.')}$`, 'i');
         return re.test(str); // remove last 'i' above to have case sensitive
     }
     
-	// When an api is called we need to know if the user has this the api as filter.
-	// If the url matches it will return the filter it match.
-	// To view the filters you can access them with the global _FILTER_URLS variable.
+    // When an api is called we need to know if the user has this the api as filter.
+    // If the url matches it will return the filter it match.
+    // To view the filters you can access them with the global _FILTER_URLS variable.
     function matchesUrlFilters(url) {
         url = relativeToAbsolute(url);
-		url = url.split('?')[0];
-		var filters = Object.entries(_FILTER_URLS);
+        url = url.split('?')[0];
+        var filters = Object.entries(_FILTER_URLS);
         for (let[key, value]of filters) {
             if (wildTest(value.url, url)) {
                 return value;
@@ -251,6 +252,22 @@ console.log("This page is currently intercepting all Ajax requests");
         });
     }
 
+	// this makes any object into a writable object even if it's readonly.
+    function makeWritable(event) {
+        //alert("middleman")
+        for (prop in event) {
+            try {
+                Object.defineProperty(event, prop, {
+                    value: event[prop],
+                    writable: true,
+                    configurable: true
+                })
+            } catch (e) {}
+            // we can not define event.isTrusted due to security in chrome.
+        }
+        return event;
+    }    
+    
     async function promptSend(data) {
         //console.log(data);
         return new Promise(function (resolve) {
@@ -288,7 +305,7 @@ console.log("This page is currently intercepting all Ajax requests");
 
         });
     }
-	
+    
     async function promptFetch(data) {
         return new Promise(function (resolve) {
             var swalConfig = {
@@ -406,14 +423,15 @@ console.log("This page is currently intercepting all Ajax requests");
                     isRejected = true;
                 }
             };
-
+            // TODO: Refactor this entire mess.
+            // It becomes more readable if you collapse the 2 return new Promise lines
             let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
             let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
             if(onRequestDataSend!=null){
                 var newRequestObj = await onRequestDataSend(requestObj);
-                if (!isRejected  ) {
-                    if(onRequestDataReturn!=null){
-                        let fetchReturn = proxyFetch(newRequestObj.url, newRequestObj.options);
+                if (!isRejected ) {
+                    let fetchReturn = proxyFetch(newRequestObj.url, newRequestObj.options);
+                    if(onRequestDataReturn!=null){   
                         return new Promise(function(resolve,reject){
                             fetchReturn.then(function(data){
                                 data.text().then(function(text){
@@ -439,13 +457,40 @@ console.log("This page is currently intercepting all Ajax requests");
                             })
                         })
                     }else{
-                        return proxyFetch(newRequestObj.url, newRequestObj.options);
+                        return fetchReturn;
                     }
                 }
             }else{
-                // todo: fix this bug. it does not intercept the return data of this request because they did not define a onRequestDataSend method
-                // I have to refactor the mess of code from above into a function and reuse it on this fetch call.
-                return proxyFetch(url, options);
+                let fetchReturn = proxyFetch(url, options);
+                if(onRequestDataReturn!=null){        
+                    return new Promise(function(resolve,reject){
+                        fetchReturn.then(function(data){
+                            data.text().then(function(text){
+                                let requestObj = {
+                                    type: 'Fetch',
+                                    data: text
+                                }
+                                
+                                onRequestDataReturn(requestObj).then(function(newData){
+                                    // create a new response for the modified body
+                                    let dataResponse = new Response(newData.data,{
+                                        status:data.status,
+                                        statusText:data.statusText,
+                                        headers:data.headers
+                                    });
+
+                                    resolve(dataResponse);
+                                });    
+                            })
+                            
+                        }).catch(function(data){
+                            reject(data);
+                        })
+                    })
+                }else{
+                    return fetchReturn;
+                    
+                }
             }
         } else {
 
@@ -490,23 +535,11 @@ console.log("This page is currently intercepting all Ajax requests");
     }
 
     // Intercepts all XmlHttpRequest.open calls
+    // todo: Investigate if the assigned function should be async
     var proxiedOpen = window.XMLHttpRequest.prototype.open;
-    window.XMLHttpRequest.prototype.open = function (method, url, async, user, password) {
+    window.XMLHttpRequest.prototype.open = function () {
         xmlHttpRequestTracker.onOpen(this, arguments);
-
-        //var foundFilter = matchesUrlFilters(url)
-        //console.log(foundFilter)
-        //if(foundFilter==null) return proxiedOpen.apply(this, [].slice.call(arguments));
-
-        //let newArguments = await promptOpen(arguments)
-        //arguments[0] = prompt("Enter Method",arguments[0])
-
-        //        newUrl = prompt("Enter Url",arguments[1])
-
-        //    if(newUrl){
-        //        arguments[1] = newUrl;
-        //    }
-
+        
         return proxiedOpen.apply(this, [].slice.call(arguments));
     }
 
@@ -564,59 +597,60 @@ console.log("This page is currently intercepting all Ajax requests");
             return proxiedSend.apply(this, [].slice.call(arguments));
         } else {
             let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
-            if(onRequestDataSend!=null){
-                var isRejected = false;
-                var requestObj = {
-                    type: 'XmlHttpRequest',
-                    args: {},
-                    url: pairedOpenArguments.url.split('?')[0],
-                    method: pairedOpenArguments.method,
-                    headers: pairedOpenArguments.headers,
-                    body: arguments[0],
-                    reject: function () {
-                        isRejected = true;
-                    }
-                }
-
-                var params = new URLSearchParams(relativeToAbsolute(pairedOpenArguments.url).split('?')[1]);
-
-                var paramsObj = Array.from(params.keys()).reduce(
-                        (acc, val) => ({
-                            ...acc,
-                            [val]: params.get(val)
-                        }), {});
-
-                requestObj.args = paramsObj;
-
-                
-
-                var newRequestObj = await onRequestDataSend.bind(this)(requestObj);
-
-                if (!isRejected) {
-                    
-                    var withCredentials = this.withCredentials;
-                    var responseType = this.responseType;
-                    
-                    var argUrl = newRequestObj.url
-                    // apply arguments to the send url
-                    for (const [key, value] of Object.entries(newRequestObj.args)) {
-                        argUrl = updateUrl(argUrl,key,value);
-                    }
-                    
-                    proxiedOpen.apply(this, [].slice.call([newRequestObj.method, argUrl]))
-
-                    for (const header in newRequestObj.headers) {
-                        proxiedSetRequestHeader.apply(this, [].slice.call([header, newRequestObj.headers[header]]));
-                    }
-                    
-                    // not sure if this does anything but it's better safe than sorry.
-                    this.withCredentials = withCredentials;
-                    this.responseType = responseType;
-                    
-                    proxiedSend.apply(this, [].slice.call([newRequestObj.body]));
-                }
-            }else{
+            
+            if(onRequestDataSend==null){
                 return proxiedSend.apply(this, [].slice.call(arguments));
+            }
+            
+            var isRejected = false;
+            var requestObj = {
+                type: 'XmlHttpRequest',
+                args: {},
+                url: pairedOpenArguments.url.split('?')[0],
+                method: pairedOpenArguments.method,
+                headers: pairedOpenArguments.headers,
+                body: arguments[0],
+                reject: function () {
+                    isRejected = true;
+                }
+            }
+
+            var params = new URLSearchParams(relativeToAbsolute(pairedOpenArguments.url).split('?')[1]);
+
+            var paramsObj = Array.from(params.keys()).reduce(
+                    (acc, val) => ({
+                        ...acc,
+                        [val]: params.get(val)
+                    }), {});
+
+            requestObj.args = paramsObj;
+
+            
+
+            var newRequestObj = await onRequestDataSend.bind(this)(requestObj);
+
+            if (!isRejected) {
+                
+                var withCredentials = this.withCredentials;
+                var responseType = this.responseType;
+                
+                var argUrl = newRequestObj.url
+                // apply arguments to the send url
+                for (const [key, value] of Object.entries(newRequestObj.args)) {
+                    argUrl = updateUrl(argUrl,key,value);
+                }
+                
+                proxiedOpen.apply(this, [].slice.call([newRequestObj.method, argUrl]))
+
+                for (const header in newRequestObj.headers) {
+                    proxiedSetRequestHeader.apply(this, [].slice.call([header, newRequestObj.headers[header]]));
+                }
+                
+                // not sure if this does anything but it's better safe than sorry.
+                this.withCredentials = withCredentials;
+                this.responseType = responseType;
+                
+                proxiedSend.apply(this, [].slice.call([newRequestObj.body]));
             }
         }
 
@@ -735,21 +769,6 @@ console.log("This page is currently intercepting all Ajax requests");
             proxiedRemoveEventListener.apply(this, [].slice.call(arguments));
 
         }
-
-        function makeWritable(event) {
-            //alert("middleman")
-            for (prop in event) {
-                try {
-                    Object.defineProperty(event, prop, {
-                        value: event[prop],
-                        writable: true,
-                        configurable: true
-                    })
-                } catch (e) {}
-                // we can not define event.isTrusted due to security in chrome.
-            }
-            return event;
-        }
     })();    
     
     // Intercept all form submissions
@@ -833,7 +852,7 @@ console.log("This page is currently intercepting all Ajax requests");
             },
             set: function (handler) {
                 logAPI(this.url, "");
-				let thisRef = this;
+                let thisRef = this;
                 sourceHandler = handler;
                 if (eventRef) {
                     proxiedRemoveEventListener.apply(this, ["message", eventRef]);
@@ -926,21 +945,6 @@ console.log("This page is currently intercepting all Ajax requests");
             }
             proxiedRemoveEventListener.apply(this, [].slice.call(arguments));
 
-        }
-
-        function makeWritable(event) {
-            //alert("middleman")
-            for (prop in event) {
-                try {
-                    Object.defineProperty(event, prop, {
-                        value: event[prop],
-                        writable: true,
-                        configurable: true
-                    })
-                } catch (e) {}
-                // we can not define event.isTrusted due to security in chrome.
-            }
-            return event;
         }
     })();
     

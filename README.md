@@ -43,7 +43,6 @@ Notes
 --
 - Any modification to the domain group (adding/editing filter or enabling/disabling domain group) requires refreshing of affected pages to take action.
 - If the website is using a FormData object in their request then it will break the prompt by displaying <kbd>[object FormData]</kbd> in the body. You would need to use the advanced automation option to edit the FormData object instead. 
-- Undefined behaviour occures if two or more domain groups execute on the same webpage.
 
 Visual Guide
 --
