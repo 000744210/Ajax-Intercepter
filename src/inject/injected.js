@@ -1,13 +1,19 @@
+/*
+    This file is inserted into the webpages which match a domain group along side the url filters stored in the _FILTER_URLS variable.
+    This is the heart of our code. It does all of the interception and modification of the data.
+*/
+
 console.log("This page is currently intercepting all Ajax requests");
 
 (function () {
 
-    // xmlHttpRequestTracker is used to obtain the url that was used in open() when the send() is called since send() does not know the url when it is called.
+    // xmlHttpRequestTracker is used to obtain the url and header that was used in creation of the XMLHttpRequest object when the send() is called since send() does not know the url or headers when it is called.
     // Example:
-    //     req.open("/api") // calls xmlHttpRequestTracker.onOpen in our intercepter to log it.
-    //     req.open("/newapi") // calls xmlHttpRequestTracker.onOpen in our intercepter to log it.
+    //     req.open("get","/api") // calls xmlHttpRequestTracker.onOpen in our intercepter to log it.
+    //     req.open("get","/newapi") // calls xmlHttpRequestTracker.onOpen in our intercepter to log it.
     //     req.send("id=5")
-    // The onSend will return /newapi since that's the one being used to call the request. No site should be doing 2 open calls like above but it could happen.
+    // The onSend will return {method: "get", url:"/newapi", headers:""}  since that's the parameters for the current object. No site should be doing 2 open calls like above but it could happen.
+	/*IMPORTANT
     xmlHttpRequestTracker = {};
     xmlHttpRequestTracker.history = [];
     xmlHttpRequestTracker.urlMap = new Map(); // A very simple way to get an XmlHttpRequest's url instead of calling xmlHttpRequestTracker.onSend
@@ -36,6 +42,7 @@ console.log("This page is currently intercepting all Ajax requests");
     }
     // onOpen is called by our prototyped XmlHttpRequest.open function.
     // This is used to gather the url assigned to the xmlHttpRequest object.
+
     xmlHttpRequestTracker.onOpen = function (xmlHttpRequestObject, arguments) {
         
         this.urlMap.set(xmlHttpRequestObject,arguments[1])
@@ -57,45 +64,58 @@ console.log("This page is currently intercepting all Ajax requests");
             value: value
         });
     }
-    
+    IMPORTANT*/
+	
     // _FILTER_URLS is injected into our webpage from /src/inject/inject.js
     var filters = Object.entries(_FILTER_URLS);
     
     // the location where our evaluated user's code is stored.
     var filterMethods = {}
     for (let [key, value] of filters) {
+        (async function(onRequestDataSend=null,onRequestDataReturn=null,init=null,beforePageLoad=null){
+			
+			// assign an id to every filter.
+			// id is used for a lookup for the filterMethods object
+			value.id = key;
+			
+			eval(value.code)
+			if(beforePageLoad){
+				await beforePageLoad()
+			}
+			let isInit = false;
+			var filterMethod = {
+				'onRequestDataSend':onRequestDataSend,
+				'onRequestDataReturn':onRequestDataReturn,
+			};
+			
+			Object.defineProperty(filterMethods, key, {
+				// The purpose of this is that we need to wait for librarys to load in before we call eval.
+				// By the time the code gets to accessing the filterMethods the entire website would be loaded.
+				get: function(){
+					(async function(){
+						if(!isInit){
+							if(init){
+								//Calls the user defined init function
+								await init();
+							}
+							// after the eval, onRequestDataSend and onRequestDataReturn is assigned to the scope. The user does not need to assign both.
+							
+							isInit = true;	           
+						}
+					})()
+					return filterMethod;
+				}
+			});	
+		})()
         
-        // assign an id to every filter.
-        // id is used for a lookup for the filterMethods object
-        value.id = key;
-        
-        let isEvaluated = false;
-        let filterMethod = null;
-        Object.defineProperty(filterMethods, key, {
-            // The purpose of this is that we need to wait for librarys to load in before we call eval.
-            // By the time the code gets to accessing the filterMethods the entire website would be loaded.
-            get:function(){
-                if(!isEvaluated){
-                    (function(onRequestDataSend=null,onRequestDataReturn=null){ // added level of scope to sandbox each eval call. May not be needed.
-                        eval(value.code);
-                        // after the eval, onRequestDataSend and onRequestDataReturn is assigned to the scope. The user does not need to assign both.
-                        filterMethod = {
-                            'onRequestDataSend':onRequestDataSend,
-                            'onRequestDataReturn':onRequestDataReturn
-                        };
-                        isEvaluated = true;
-                    })();            
-                }
-                return filterMethod;
-            }
-        });
     }
     
     /*
         logAPI inserts a DOM object into the DOM for storing a log of APIs found.
         This is due to a limitation with extensions. The only way to share 
         information between the extension and a website is through the usage of the DOM. This is insecure hense why they tried to prevent it.
-		View /src/inject/inject.js for how the extension obtains these DOM objects to add to the found api list.
+        XSS exploits are not capable with it since script tags don't run in the extension. HTML injection is patched by validating the data before being stored.
+        View /src/inject/inject.js for how the extension obtains these DOM objects to add to the found api list.
     */
     logHistory = new Set();
     function logAPI(url, params) {
@@ -252,7 +272,7 @@ console.log("This page is currently intercepting all Ajax requests");
         });
     }
 
-	// this makes any object into a writable object even if it's readonly.
+    // this makes any object into a writable object even if it's readonly.
     function makeWritable(event) {
         //alert("middleman")
         for (prop in event) {
@@ -275,22 +295,22 @@ console.log("This page is currently intercepting all Ajax requests");
                 html:
                 "<label for='swal-input1'>Url</label><input name='swal-input1' id='swal-input1' style='width:100%'><br><br>" +
                 "<label for='swal-input2'>Method</label><input name='swal-input2' id='swal-input2' style='width:100%'><br><br>" +
-                "<div style='display:" + (data.method.toUpperCase() == "GET" ? "none" : "block") + ";'><label for='swal-input3'>Body</label><br><textarea id='swal-input3' rows='10' cols='50'></textarea></div><br><br>" +
-                "<label for='swal-input4'>Headers</label><br><textarea name='swal-input4' id='swal-input4' style='width:100%' cols='40' rows='10'></textarea>",
+                "<div style='display:" + (data.method.toUpperCase() == "GET" ? "none" : "block") + ";'><label for='swal-input3'>Body</label><br><textarea id='swal-input3' rows='10' cols='50'></textarea></div><br><br>" /*+
+                "<label for='swal-input4'>Headers</label><br><textarea name='swal-input4' id='swal-input4' style='width:100%' cols='40' rows='10'></textarea>"*/,
                 focusConfirm: false,
                 preConfirm: () => {
                     resolve({
                         url: document.getElementById("swal-input1").value,
                         method: document.getElementById("swal-input2").value,
                         body: document.getElementById("swal-input3").value,
-                        headers: document.getElementById("swal-input4").value
+                        /*headers: document.getElementById("swal-input4").value*/
                     })
                 },
                 onBeforeOpen: () => {
                     document.getElementById("swal-input1").value = data.url;
                     document.getElementById("swal-input2").value = data.method;
                     document.getElementById("swal-input3").value = data.body;
-                    document.getElementById("swal-input4").value = data.headers;
+                    /*document.getElementById("swal-input4").value = data.headers*/;
                 },
                 showCancelButton: false,
                 allowOutsideClick: false
@@ -407,7 +427,10 @@ console.log("This page is currently intercepting all Ajax requests");
             url = url.url;
         }
 
+		//console.log("FETCH",url)
+		
         logAPI(url, "")
+		
         var foundFilter = matchesUrlFilters(url);
         if (foundFilter == null){
             return proxyFetch(url, options);
@@ -525,7 +548,181 @@ console.log("This page is currently intercepting all Ajax requests");
         }
 
     }
+	
+	var proxyXMLHttpRequest = window.XMLHttpRequest;
+	
+	window.XMLHttpRequest = class extends window.XMLHttpRequest{
+		#openArgs = null
+		#headers = []
+		
+		#isCached = false;
+		#cachedResponse = {
+			response:null,
+			responseType:null
+		}
+		
+		
+		get response(){
+			this.#cacheResponse()
+			return this.#cachedResponse.response
+		}
+		
+		get responseText(){
+			this.#cacheResponse()
+			return this.#cachedResponse.response;
+		}
+		
+		async #cacheResponse(){			
+			
+			this.#cachedResponse = {
+				response:super.response,
+				responseType:super.responseType
+			}
+			
+			if(!this.#isCached){	
+				this.#isCached = true;
+				var foundFilter = matchesUrlFilters(this.#openArgs[1]);
+				if(foundFilter!=null && foundFilter.isAutomated){
+					let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;	
+					if(onRequestDataReturn!=null){
+						var editedResponse = await onRequestDataReturn.bind(this)(this.#cachedResponse);
+						this.#cachedResponse = editedResponse
+					}
+				}
+			}
+		}
+		
+		setRequestHeader(name,value){
+			//super.setRequestHeader(...arguments)
+			this.#headers.push([name,value])
+		}
+		
+		open(){
+			//super.open(...arguments)
+			this.#openArgs = arguments;
+			logAPI(arguments[1],"")
+			
+		}
+		
+		async send(){
+			this.#isCached = false;
+			var foundFilter = matchesUrlFilters(this.#openArgs[1]);
+			var classRef = this; // some reference of 'this' does not refer to the class
+			// if the api does not match any the user wants to edit we will just perform the function as it normally would.
+			if (foundFilter == null || this.#openArgs[1] == null) { 
+				proxyXMLHttpRequest.prototype.open.apply(this,this.#openArgs)
+				
+				this.#headers.forEach(function(pair){
+					proxyXMLHttpRequest.prototype.setRequestHeader.apply(classRef,[pair[0],pair[1]])
+				});
+				return proxyXMLHttpRequest.prototype.send.apply(this,arguments);
+			}
+			
+			if (foundFilter.isAutomated) {
+				let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
+				//console.log(this.#openArgs[1],onRequestDataSend);
+				
+				if(onRequestDataSend==null){
+					proxyXMLHttpRequest.prototype.open.apply(this,this.#openArgs)
 
+					this.#headers.forEach(function(pair){
+						proxyXMLHttpRequest.prototype.setRequestHeader.apply(classRef,[pair[0],pair[1]])
+					});
+					return proxyXMLHttpRequest.prototype.send.apply(this,arguments);
+				}
+
+				var params = new URLSearchParams(relativeToAbsolute(this.#openArgs[1]).split('?')[1]);
+
+				var paramsObj = Array.from(params.keys()).reduce(
+						(acc, val) => ({
+							...acc,
+							[val]: params.get(val)
+						}), {});
+
+				
+				var isRejected = false;
+				var requestObj = {
+					type: 'XmlHttpRequest',
+					args: paramsObj,
+					url: this.#openArgs[1].split('?')[0],
+					method: this.#openArgs[0],
+					headers: this.#headers,
+					body: arguments[0],
+					reject: function () {
+						isRejected = true;
+					}
+				}
+				
+				// give the user the requestObj to modify it.
+				var newRequestObj = await onRequestDataSend.bind(this)(requestObj);
+
+				if(isRejected) return;
+
+				var argUrl = newRequestObj.url
+				// apply arguments to the send url
+				for (const [key, value] of Object.entries(newRequestObj.args)) {
+					argUrl = updateUrl(argUrl,key,value);
+				}
+				
+				//TODO: deal with the extra open parameters that could be added to the call
+				//var extraArgs = this.#openArgs.slice(2);
+				
+				proxyXMLHttpRequest.prototype.open.apply(this,[newRequestObj.method, argUrl])
+
+				newRequestObj.headers.forEach(function(pair){
+					proxyXMLHttpRequest.prototype.setRequestHeader.apply(classRef,[pair[0],pair[1]])
+				})
+				return proxyXMLHttpRequest.prototype.send.apply(this,[newRequestObj.body]);
+			
+							
+			}else{
+				//var stringHeaders = "";
+				//for (const header in this.#headers) {
+				//	stringHeaders += header + ":" + this.#headers[header] + "\n\n";
+				//}
+
+				let newArguments = await promptSend({
+						body: arguments[0],
+						method: this.#openArgs[0],
+						url: this.#openArgs[1],
+						//headers: stringHeaders
+					});
+
+				/*headers = newArguments.headers.split("\n");
+				headerOption = {}
+				for (i = 0; i < headers.length; i++) {
+					var str = headers[i];
+					var index = str.indexOf(':');
+					var arr = [str.slice(0, index), str.slice(index + 1)];
+					if (arr[0] != '' && arr[1] != '') {
+						headerOption[arr[0]] = arr[1];
+					}
+				}
+				newArguments.headers = headerOption;
+				*/
+				
+				arguments[0] = newArguments.body;
+
+				//if (newArguments.url != this.#openArgs[1] || newArguments.method != this.#openArgs[0]) {
+				proxyXMLHttpRequest.prototype.open.apply(this, [newArguments.method, newArguments.url])
+				//} else {
+				//	proxyXMLHttpRequest.prototype.open.apply(this, [pairedOpenArguments.method, pairedOpenArguments.url])
+				//}
+
+				/*for (const header in newArguments.headers
+					proxyXMLHttpRequest.prototype.setRequestHeader.apply(this, [].slice.call([header[0], newArguments.headers[header]]));
+				}*/
+				this.#headers.forEach(function(pair){
+					proxyXMLHttpRequest.prototype.setRequestHeader.apply(classRef,[pair[0],pair[1]])
+				});
+				
+				return proxyXMLHttpRequest.prototype.send.apply(this, arguments);				
+			}
+			
+		}		
+	}
+	
+	/*IMPORTANT
     // Intercepts all XmlHttpRequest.setRequestHeader calls
     // Because we don't have a getRequestHeader method, we log the set calls so we can reobtain the list of headers for the object.
     var proxiedSetRequestHeader = window.XMLHttpRequest.prototype.setRequestHeader;
@@ -658,55 +855,105 @@ console.log("This page is currently intercepting all Ajax requests");
 
     // xmlHttpRequest on data return
     (function(){
-        var handleHandler = new Map();
-        var eventRef = null;
-        var sourceHandler = null;
+        var loadHandleHandler = new Map();
+        var loadEventRef = null;
+        var loadSourceHandler = null;
+        
+        var readystatechangeHandleHandler = new Map();
+        var readystatechangeEventRef = null;
+        var readystatechangeSourceHandler = null;
         
         Object.defineProperty(window.XMLHttpRequest.prototype, "onload", {
             get: function () {
-                return sourceHandler;
+                return loadSourceHandler;
             },
             set: function (handler) {
 
-                sourceHandler = handler;
-                if (eventRef) {
-                    proxiedRemoveEventListener.apply(this, ["load", eventRef]);
+                loadSourceHandler = handler;
+                if (loadEventRef) {
+                    proxiedRemoveEventListener.apply(this, ["load", loadEventRef]);
                 }
                 if (typeof(handler) == "function") {
-                    eventRef = async function (event) {
-                        var url = xmlHttpRequestTracker.getXmlHttpRequestUrl(this);
+                    loadEventRef = async function (event) {
+                        let url = xmlHttpRequestTracker.getXmlHttpRequestUrl(this);
                         
-                        var foundFilter = matchesUrlFilters(url);
+                        let foundFilter = matchesUrlFilters(url);
+                        if (foundFilter != null) {
+                            let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
+                            if(onRequestDataReturn!=null){
+                                let writableObj = makeWritable(this);
+                                let writableObj = this;
+                                let isRejected = false;
+                                writableObj.reject = function () {
+                                    isRejected = true;
+                                }
+                                let thisRef = await onRequestDataReturn.bind(this)(writableObj);
+                                if (!isRejected) {
+                                    return handler.bind(thisRef)(event);
+                                }
+                            }else{
+                                return handler.bind(this)(event)
+                            }
+                        } else {
+                            return handler.bind(this)(event);
+                        }
+                    }
+                    proxiedAddEventListener.apply(this, ["load", loadEventRef]);
+                } else {
+                    loadEventRef = null;
+                }
+            }
+        });
+
+        Object.defineProperty(window.XMLHttpRequest.prototype, "onreadystatechange", {
+            get: function () {
+                return readystatechangeSourceHandler;
+            },
+            set: function (handler) {
+
+                readystatechangeSourceHandler = handler;
+                if (readystatechangeEventRef) {
+                    proxiedRemoveEventListener.apply(this, ["readystatechange", readystatechangeEventRef]);
+                }
+                if (typeof(handler) == "function") {
+                    readystatechangeEventRef = async function (event) {
+                        
+                        if(this.readyState !== this.DONE){ // skip all other states    
+                            handler.bind(this)(event);
+                            return;
+                        }
+                        
+                        let url = xmlHttpRequestTracker.getXmlHttpRequestUrl(this);
+                        
+                        let foundFilter = matchesUrlFilters(url);
                         if (foundFilter != null) {
                             
                             let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
                             if(onRequestDataReturn!=null){
                                 let writableObj = makeWritable(this);
-                                var isRejected = false;
+                                let isRejected = false;
                                 writableObj.reject = function () {
                                     isRejected = true;
                                 }
-                                
-                                // Make sure when we ran eval that they created the method.
                             
                                 let thisRef = await onRequestDataReturn.bind(this)(writableObj);
                                 if (!isRejected) {
-                                    handler.bind(thisRef)(event);
+                                    return handler.bind(thisRef)(event);
                                 }
                             }else{
-                                handler.bind(this)(event)
+                                return handler.bind(this)(event)
                             }
                         } else {
-                            handler.bind(this)(event);
+                            return handler.bind(this)(event);
                         }
                     }
-                    proxiedAddEventListener.apply(this, ["load", eventRef]);
+                    proxiedAddEventListener.apply(this, ["readystatechange", readystatechangeEventRef]);
                 } else {
-                    eventRef = null;
+                    readystatechangeEventRef = null;
                 }
             }
-        });
-
+        });        
+        
         var proxiedAddEventListener = window.XMLHttpRequest.prototype.addEventListener;
         window.XMLHttpRequest.prototype.addEventListener = async function () {
             if (arguments[0] == "load") {
@@ -727,29 +974,75 @@ console.log("This page is currently intercepting all Ajax requests");
 
                             let thisRef = await onRequestDataReturn.bind(xmlObject)(writableObj);
                             if (!isRejected) {
-                                handler.bind(thisRef)(event);
+                                return handler.bind(thisRef)(event);
                                 //handler(event);
                             }
                         }else{
-                            handler.bind(this)(event);
+                            return handler.bind(this)(event);
                         }
                     }else{
-                        handler.bind(this)(event);
+                        return handler.bind(this)(event);
                     }
                 }
 
-                if (!handleHandler.has(this)) {
+                if (!loadHandleHandler.has(this)) {
                     var map = new Map();
                     map.set(handler, arguments[1]);
-                    handleHandler.set(this, map);
+                    loadHandleHandler.set(this, map);
 
                     proxiedAddEventListener.apply(this, [].slice.call(arguments));
-                } else if (!handleHandler.get(this).has(handler)) {
-                    handleHandler.get(this).set(handler, arguments[1]);
+                } else if (!loadHandleHandler.get(this).has(handler)) {
+                    loadHandleHandler.get(this).set(handler, arguments[1]);
                     proxiedAddEventListener.apply(this, [].slice.call(arguments));
                 }
                 
-            } else {
+            } else if(arguments[0] == "readystatechange"){
+                let handler = arguments[1];
+                let xmlObject = this;
+                arguments[1] = async function (event) {
+                    
+                    if(this.readyState !== this.DONE){ // skip all other states    
+                        handler.bind(this)(event);
+                        return;
+                    }
+                    
+                    let url = xmlHttpRequestTracker.getXmlHttpRequestUrl(xmlObject);
+                    let foundFilter = matchesUrlFilters(url);
+                    if (foundFilter != null) {
+                        let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
+                        if(onRequestDataReturn != null){
+                            let writableObj = makeWritable(this);
+                            
+                            let isRejected = false;
+                            writableObj.reject = function () {
+                                isRejected = true;
+                            }
+
+                            let thisRef = await onRequestDataReturn.bind(xmlObject)(writableObj);
+                            if (!isRejected) {
+                                return handler.bind(thisRef)(event);
+                                //handler(event);
+                            }
+                        }else{
+                            return handler.bind(this)(event);
+                        }
+                    }else{
+                        return handler.bind(this)(event);
+                    }
+                }
+
+                if (!readystatechangeHandleHandler.has(this)) {
+                    var map = new Map();
+                    map.set(handler, arguments[1]);
+                    readystatechangeHandleHandler.set(this, map);
+
+                    proxiedAddEventListener.apply(this, [].slice.call(arguments));
+                } else if (!readystatechangeHandleHandler.get(this).has(handler)) {
+                    readystatechangeHandleHandler.get(this).set(handler, arguments[1]);
+                    proxiedAddEventListener.apply(this, [].slice.call(arguments));
+                }
+                                
+            }else{
                 proxiedAddEventListener.apply(this, [].slice.call(arguments));
             }
 
@@ -761,21 +1054,26 @@ console.log("This page is currently intercepting all Ajax requests");
             //var foundFilter = matchesUrlFilters(url);
             //if (foundFilter != null) {
             if (arguments[0] == "load") {
-                if(handleHandler.has(this) && handleHandler.get(this).has(arguments[1])){
-                    arguments[1] = handleHandler.get(this).get(arguments[1]);
+                if(loadHandleHandler.has(this) && loadHandleHandler.get(this).has(arguments[1])){
+                    arguments[1] = loadHandleHandler.get(this).get(arguments[1]);
                 }
+            }else if(arguments[0] == "readystatechange"){
+                if(readystatechangeHandleHandler.has(this) && readystatechangeHandleHandler.get(this).has(arguments[1])){
+                    arguments[1] = readystatechangeHandleHandler.get(this).get(arguments[1]);
+                }                
             }
             //}
             proxiedRemoveEventListener.apply(this, [].slice.call(arguments));
 
         }
     })();    
-    
+    IMPORTANT*/
+	
     // Intercept all form submissions
     window.onload = function (event) {
         document.body.addEventListener('submit', async function (event) {
-
-            paramElements = event.target.querySelectorAll("[name]:checked,[name]:not([type=checkbox]):not([type=radio])"); // get all elements with the attribute name. This should be everything that would be a parameter in the request.
+            // get all elements with the attribute name. This should be everything that would be a parameter in the request.
+            paramElements = event.target.querySelectorAll("[name]:checked,[name]:not([type=checkbox]):not([type=radio])"); 
             paramString = "";
             paramElements.forEach((ele) => paramString += ele.name + ",");
             paramString.trim(",");
@@ -874,16 +1172,16 @@ console.log("This page is currently intercepting all Ajax requests");
                                 
                                 event = await onRequestDataReturn.bind(thisRef)(event);
                                 if (!isRejected) {
-                                    handler.bind(this)(event);
+                                    return handler.bind(this)(event);
                                 }
                             }else{
-                                handler.bind(this)(event)
+                                return handler.bind(this)(event)
                             }
                         } else {
-                            handler.bind(this)(event);
+                            return handler.bind(this)(event);
                         }
                     }
-                    proxiedAddEventListener.apply(this, ["message", eventRef]);
+                    return proxiedAddEventListener.apply(this, ["message", eventRef]);
                 } else {
                     eventRef = null;
                 }
@@ -923,14 +1221,14 @@ console.log("This page is currently intercepting all Ajax requests");
                         map.set(handler, arguments[1]);
                         handleHandler.set(this, map);
 
-                        proxiedAddEventListener.apply(this, [].slice.call(arguments));
+                        return proxiedAddEventListener.apply(this, [].slice.call(arguments));
                     } else if (!handleHandler.get(this).has(handler)) {
                         handleHandler.get(this).set(handler, arguments[1]);
-                        proxiedAddEventListener.apply(this, [].slice.call(arguments));
+                        return proxiedAddEventListener.apply(this, [].slice.call(arguments));
                     }
                 }
             } else {
-                proxiedAddEventListener.apply(this, [].slice.call(arguments));
+                return proxiedAddEventListener.apply(this, [].slice.call(arguments));
             }
 
         }
@@ -943,7 +1241,7 @@ console.log("This page is currently intercepting all Ajax requests");
                     arguments[1] = handleHandler.get(this).get(arguments[1]);
                 }
             }
-            proxiedRemoveEventListener.apply(this, [].slice.call(arguments));
+            return proxiedRemoveEventListener.apply(this, [].slice.call(arguments));
 
         }
     })();
@@ -967,13 +1265,13 @@ console.log("This page is currently intercepting all Ajax requests");
                 var newRequestObj = await onRequestDataSend.bind(this)(requestObj);
 
                 if (!isRejected) {
-                    proxiedWebSocketSend.apply(this, [newRequestObj.data])
+                    return proxiedWebSocketSend.apply(this, [newRequestObj.data])
                 }        
             }else{
-                proxiedWebSocketSend.apply(this, [].slice.call(arguments))
+                return proxiedWebSocketSend.apply(this, [].slice.call(arguments))
             }
         }else{
-            proxiedWebSocketSend.apply(this, [].slice.call(arguments))
+            return proxiedWebSocketSend.apply(this, [].slice.call(arguments))
         }
     }
     

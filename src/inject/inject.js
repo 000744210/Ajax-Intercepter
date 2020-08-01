@@ -1,5 +1,5 @@
 function validURL(str) {
-  // https://regexr.com/58mu8 add test case when it finds a new broken valid api.
+  // https://regexr.com/58mu8 add test case when it thinks it found a broken api url.
   var pattern = new RegExp(/^(([^:\/<>?#]+:)(?:\/\/((?:([^\/<>?#:]*):([^\/<>?#:]*)@)?([^\/<>?#:]*)(?::([^\/<>?#:]*))?)))([^<>?#]*)(\?[^<>#]*)?(#.*)?$/,'i'); // fragment locator
   return !!pattern.test(str);
 }
@@ -15,6 +15,7 @@ function escapeHtml(s) {
         })[m];
     });
 }
+
 
 chrome.storage.local.get(["domainGroupData"], function (result) {
 
@@ -57,22 +58,23 @@ chrome.storage.local.get(["domainGroupData"], function (result) {
                    
                     (document.head || document.documentElement).appendChild(script);
                 })
-                
+				
+				s = document.createElement('script');
+				s.src = chrome.runtime.getURL('/js/sweetalert2.js');
+				s.onload = function () {
+					this.remove();
+				};
+				(document.head || document.documentElement).appendChild(s);
+
+				s = document.createElement('script');
+				s.src = chrome.runtime.getURL('src/inject/injected.js');
+				s.onload = function () {
+					this.remove();
+				};
+				(document.head || document.documentElement).appendChild(s);                
             })
             
-            s = document.createElement('script');
-            s.src = chrome.runtime.getURL('/js/sweetalert2.js');
-            s.onload = function () {
-                this.remove();
-            };
-            (document.head || document.documentElement).appendChild(s);
-
-            s = document.createElement('script');
-            s.src = chrome.runtime.getURL('src/inject/injected.js');
-            s.onload = function () {
-                this.remove();
-            };
-            (document.head || document.documentElement).appendChild(s);
+            
 
             var logger = document.createElement("logger")
             document.documentElement.appendChild(logger);
