@@ -193,9 +193,12 @@ console.log("This page is currently intercepting all Ajax requests");
     
     // Does a wild card regex comparison to validate if they match.
     // wildTest("google.com/search/*/","google.com/search/2346/") -> true
+	// This implementation of wildcard search is different than the traditional implementation.
+	// Normally It works like this: wildTest("google.com/search/*","google.com/search/2346/word") -> true
+	// But in my impelementation the * only reads up to a / eg, .* -> [^/]* so in the case above would return false.
     function wildTest(wildcard, str) {
-        let w = wildcard.replace(/[.+^${}()|[\]\\]/g, '\\$&'); // regexp escape
-        const re = new RegExp(`^${w.replace(/\*/g,'.*').replace(/\?/g,'.')}$`, 'i');
+        let w = wildcard.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\/$/,''); // regexp escape & remove trailing forward slash
+        const re = new RegExp(`^${w.replace(/\*/g,'[^/]*').replace(/\?/g,'.')}/?$`, 'i');
         return re.test(str); // remove last 'i' above to have case sensitive
     }
     
