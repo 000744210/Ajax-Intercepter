@@ -38,34 +38,45 @@ chrome.storage.local.get(["ajaxLoggerData"+groupId], function(result) {
 		chrome.storage.local.get(["ajaxLoggerData"+groupId], function(result) {
 			var logs = result["ajaxLoggerData"+groupId] || {}
 			
+			// this will be the log we update the chrome.storage with.
 			var newLogs = {};
+			
+			// list of args from all merged logs
 			var newLogArgs = []
 			
+			/*
+				We loop through the entire api log and rebuild the log base on the success of the user's wildcard url.
+				
+				For each log entry, if the log api does not match the user's wildcard we insert it into into newLogs
+									if the log api matches the user's wildcard we don't insert into newlogs but we merge the arguments into a single array.
+			*/
 			var matchFound = false;
 			for(var [key,value] of Object.entries(logs)){
 				if(wildTest(wildcardStr,key)){
 					matchFound = true;
-					// merge all matched arrays together into a single array. The array will have duplicates but I undupe it with a Set later.
+					// merge all matched arg arrays together into a single array. The array will have duplicates but I undupe it with a Set later.
 					newLogArgs = newLogArgs.concat(value);
 				}else{
 					newLogs[key] = value;
 				}
 			}
 			
-			
-			if(matchFound){
-				newLogs[wildcardStr] = [...new Set(newLogArgs)];
-				
-				var jsonObj = {};
-				jsonObj["ajaxLoggerData"+groupId] = newLogs;
-				
-				chrome.storage.local.set(jsonObj, function() { 
-					window.location.href = "/src/page_action/viewlogs.html?groupid=" + groupId
-				});	
-			}else{
+			if(!matchFound){
 				alert("The provided wildcard URL does not match any existing API logs.\nNote: the * character only reads up to a / character")
+				return;
 			}
 			
+			// insert the user's wildcard into the logs with a non duped arg list into the rebuilt log list.
+ 			newLogs[wildcardStr] = [...new Set(newLogArgs)];
+			
+			var jsonObj = {};
+			jsonObj["ajaxLoggerData"+groupId] = newLogs;
+			
+			chrome.storage.local.set(jsonObj, function() { 
+				window.location.href = "/src/page_action/viewlogs.html?groupid=" + groupId
+			});	
+
+		
 		})
 	}
 	

@@ -69,8 +69,46 @@ textarea
   height: 200px;
   tab-size: 4;
 }
+
+.CodeMirror{
+	line-height:11px;
+	font-size:11px;
+}
 </style>
 
+<!--
+// intercept the data sent to the server.
+async function onRequestDataSend(request)
+{
+	console.log("Intercepted ", request);
+	// Modify the request object here.
+	return request;	
+}
+
+// Intercept the data being returned to the website.
+async function onRequestDataReturn(event)
+{
+	console.log("Intercepted", event);
+	// modify the received event object.
+	return event;
+}
+
+// Called once right before the first ajax call.
+async function init()
+{
+	
+}
+
+// Called once right before the page loads.
+async function beforePageLoad()
+{
+	
+}
+
+// View more information here: 
+// https://github.com/000744210/Ajax-Intercepter
+
+-->
 
 <div id="mainPopup">
 	<header><h1>Ajax Request Tester</h1></header>
@@ -81,81 +119,8 @@ textarea
 			<br><br>
 			<div><label for='automation'>Advanced Automation</label><input type='checkbox' id='automation' name='automation'></input></div>
 <div id='automationSection' style='display:none;'>
-<textarea class="tabSupport" id="codeBox" style='height:332px;' spellcheck="false">async function onRequestDataSend(request)
-{
-	console.log("Intercepted ", request);
-	// Modify the request object here.
-	return request;	
-}
-
-async function onRequestDataReturn(event){
-	console.log("Intercepted", event);
-	// modify the received event object.
-	return event;
-}
-
-// onRequestDataReturn is a function for receiving 
-//
-//  
-//
-// event object contains a reject function for dropping the packet.
-
-
-// The objects passed to the onRequestDataSend function
-// formRequest = {
-// 	  type : "Form",
-//
-//	  args : {},    // The arguments being sent to the API.
-//
-//	  url : "",     // The url of the API.
-//
-//	  method : "",  // GET/POST/PUT/DELETE
-//
-//	  reject : function(){}
-//	  // Reject will cancel the network call.
-//    // May break the website's code.   
-// }
-
-// xmlHttpRequestRequest = {
-// 	  type : "XmlHttpRequest",  
-//
-//	  args : {},    // The arguments being sent to the API.
-//
-//	  url : "",     // The url of the API.
-//
-//	  method : "",  // GET/POST/PUT/DELETE
-//
-//	  headers : {}, // The headers which are being sent.
-// 
-//	  body : ''     // The body which is being sent 
-//				    // with the POST/PUT/DELETE request.
-//
-//	  reject : function(){}
-//	  // Reject will cancel the network call.
-//    // May break the website's code.   
-// }
-
-// FetchRequest = {
-// 	  type : "Fetch",    
-//
-//	  url : "",     // The url of the API.
-//
-//	  options : {}  // The options for the fetch request.
-//
-//	  reject : function(){}
-//	  // Reject will cancel the network call.
-//    // May break the website's code.   
-// }
-
-// WebSocketSendRequest = {
-// 	  type : "WebSocket",    
-//
-//	  data : "",
-//
-//	  reject : function(){}
-//	  // Reject will cancel the network call.
-//    // May break the website's code.   
-// }</textarea>
+<textarea  id="codeBox2" spellcheck="false">
+</textarea>
 	<br><br>
 	<label>Library Loader</label><span style='float:right;color:#929292;padding-right:3px'>List of script urls to load to the page.</span>
 	<br>
@@ -167,5 +132,7 @@ async function onRequestDataReturn(event){
 </div>
 
 <script src="/js/jquery.js"></script>
-<script src='/js/tabsupport.js'></script>
+<script src='/js/codemirror.js'></script>
+<link rel="stylesheet" href="/css/codemirror.css">
+<script src="/js/javascriptmode.js"></script>
 <script src='/src/page_action/createajaxurl.js'></script>

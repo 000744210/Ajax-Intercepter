@@ -6,6 +6,42 @@ function getQueryParameter(parameter) {
     }
 }
 
+var myCodeMirror = CodeMirror.fromTextArea(document.getElementById("codeBox2"),{
+	lineNumbers: true,
+    mode: "javascript",
+	
+})
+
+myCodeMirror.setValue(`// intercept the data sent to the server.
+async function onRequestDataSend(request)
+{
+  console.log("Intercepted ", request);
+  // Modify the request object here.
+  return request;	
+}
+
+// Intercept the data being returned to the website.
+async function onRequestDataReturn(event)
+{
+  console.log("Intercepted", event);
+  // modify the received event object.
+  return event;
+}
+
+// Called once right before the first ajax call.
+async function init()
+{
+  
+}
+
+// Called once right before the page loads.
+async function beforePageLoad()
+{
+  
+}
+
+// View more information here: 
+// https://github.com/000744210/Ajax-Intercepter)`);
 
 var groupId =  parseInt(getQueryParameter("groupid"));
 var updateId = getQueryParameter("urlid")
@@ -17,7 +53,7 @@ if(updateId!=null){
         var array = result["ajaxGroupData"+groupId]?result["ajaxGroupData"+groupId]:{};
         document.getElementById("domain").value = array[updateId].url;
         document.getElementById("automation").checked = array[updateId].isAutomated;
-        document.getElementById("codeBox").value = array[updateId].code;
+        myCodeMirror.setValue(array[updateId].code);
         document.getElementById("libBox").value = array[updateId].libs;
         
         updateCodeBox()
@@ -49,7 +85,7 @@ document.getElementById("continueBtn").onclick = function(){
         array[nextId] = {
             url:document.getElementById("domain").value,
             isAutomated: document.getElementById("automation").checked,
-            code: document.getElementById("codeBox").value,
+            code: myCodeMirror.getValue(),
             libs:document.getElementById("libBox").value
         };
         var jsonObj = {};
