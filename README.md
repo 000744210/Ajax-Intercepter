@@ -114,6 +114,7 @@ This is the list of objects sent to <kbd>onRequestDataSend</kbd> based by the ty
  				          // with the POST/PUT/DELETE request.
           reject : function() // Drop packet
       }
+	  
 	  The 'this' context referrers to the XmlHttpRequest object.
 	  
  - Form
@@ -145,6 +146,7 @@ This is the list of objects sent to <kbd>onRequestDataReturn</kbd> based by the 
           response:"", // xmlHttpRequest.response
           responseType:"" // xmlHttpRequest.responseType
       }
+	  
 	  The 'this' context referrers to the XmlHttpRequest object.
 	  
 - Fetch
