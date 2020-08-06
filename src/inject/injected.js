@@ -111,47 +111,47 @@ console.log("This page is currently intercepting all Ajax requests");
     }
     
     /*
-        logAPI inserts a DOM object into the DOM for storing a log of APIs found.
-        This is due to a limitation with extensions. The only way to share 
-        information between the extension and a website is through the usage of the DOM. This is insecure hense why they tried to prevent it.
-        XSS exploits are not capable with it since script tags don't run in the extension. HTML injection is patched by validating the data before being stored.
-        View /src/inject/inject.js for how the extension obtains these DOM objects to add to the found api list.
+        Sends a message to the content script with an api it found while intercepting.
     */
     logHistory = new Set();
-    function logAPI(url, params) {
-        logger = document.querySelector("html > logger");
-        if (logger) {
-            var url = relativeToAbsolute(url);
-            
-            var parsedUrl = parseUrl(url);
-            
-            // https://www.google.com/home?q=hello+world would be https://www.google.com/home
-            var apiUrl = parsedUrl.protocol + "//" + parsedUrl.hostname + parsedUrl.pathname;
-            
-            var numberRegex = /\/\d+/gi; // detects a forwards slash and a sequence of numbers: /346
-            
-            // https://www.google.com/search/234 would be  https://www.google.com/search/* to compress the api list
-            apiUrl = apiUrl.replace(numberRegex,"/*")
-            
-            
-            // To increase performance we only append to the logger if the api has not been logged this session.
-            // Heavy use apis could slow down a browser a lot without this.
-            if(!logHistory.has(apiUrl)){
-                logHistory.add(apiUrl);
-                var urlParams = parsedUrl.search.split("&");
-                urlParamsString = ",";
-                urlParams.forEach(function (paramPair) {
-                    var pair = paramPair.split("=");
-                    urlParamsString += pair[0].replace("?", "") + ",";
-                })
-                //console.log(urlParamsString);
-                var api = document.createElement("api");
-                api.dataset.url = apiUrl;
-                api.dataset.params = params + urlParamsString;
+    function logAPI(url, params = []) {
 
-                logger.appendChild(api);
-            }
-        }
+		var url = relativeToAbsolute(url);
+		
+		var parsedUrl = parseUrl(url);
+		
+		// https://www.google.com/home?q=hello+world would be https://www.google.com/home
+		var apiUrl = parsedUrl.protocol + "//" + parsedUrl.hostname + parsedUrl.pathname;
+		
+		var numberRegex = /\/\d+/gi; // detects a forwards slash and a sequence of numbers: /346
+		
+		// https://www.google.com/search/234 would be  https://www.google.com/search/* to compress the api list
+		apiUrl = apiUrl.replace(numberRegex,"/*")
+		
+		
+		// To increase performance we only append to the logger if the api has not been logged this session.
+		// Heavy use apis could slow down a browser a lot without this.
+		if(!logHistory.has(apiUrl)){
+			logHistory.add(apiUrl);
+			
+			var urlParams = parsedUrl.search.split("&");
+			//urlParamsString = ",";
+			urlParamsArr = params
+			urlParams.forEach(function (paramPair) {
+				var pair = paramPair.split("=");
+				//urlParamsString += pair[0].replace("?", "") + ",";
+				urlParamsArr.push(pair[0].replace("?", ""))
+			})
+
+			//console.log(urlParamsString);
+			//var api = document.createElement("api");
+			//api.dataset.url = apiUrl;
+			//api.dataset.params = params + urlParamsString;
+
+			window.postMessage({ type: "FROM_PAGE", url:apiUrl, args:urlParamsArr }, "*");
+			//logger.appendChild(api);
+		}
+        
     }
 
     function parseUrl(url) {
@@ -181,12 +181,16 @@ console.log("This page is currently intercepting all Ajax requests");
     // Eg; /index.html -> https://github.com/index.html
     function relativeToAbsolute(url) {
         if (!url.startsWith("http://") && !url.startsWith("https://") && !url.startsWith("wss://") && !url.startsWith("ws://")) {
-            if (url.startsWith("/")) {
-                url = window.location.protocol + "//" + window.location.hostname + url
-            } else {
-                url = window.location.protocol + "//" + window.location.hostname + "/" + url
+            if(url.startsWith("//")){
+				url = window.location.protocol + url
+			}else{
+				if (url.startsWith("/")) {
+					url = window.location.protocol + "//" + window.location.hostname + url
+				} else {
+					url = window.location.protocol + "//" + window.location.hostname + "/" + url
 
-            }
+				}
+			}
         }
         return url;
     }
@@ -216,6 +220,7 @@ console.log("This page is currently intercepting all Ajax requests");
         }
     }
     
+	// Returns a url with a new key/value parameter appended to it.
     // https://stackoverflow.com/questions/486896/adding-a-parameter-to-the-url-with-javascript
     function updateUrl(url, key, value) {
         if (value !== undefined) {
@@ -411,8 +416,33 @@ console.log("This page is currently intercepting all Ajax requests");
     // Intercepts all fetch calls
     var proxyFetch = fetch;
     window.fetch = async function (url, options = {}) {
-        // they are using a Request object so we convert it to the options format.
-        if (url instanceof Request) {
+		
+        
+        if(url instanceof Request){
+			logAPI(url.url)
+		}else{
+			logAPI(url)
+		}
+        
+		var foundFilter = null;
+		if(url instanceof Request){
+			foundFilter = matchesUrlFilters(url.url);
+		}else{
+			foundFilter=  matchesUrlFilters(url);
+		}
+
+        if (foundFilter == null){
+			if(url instanceof Request){
+				return proxyFetch(url);
+			}else{
+				return proxyFetch(url, options);
+			}
+        }
+        
+		
+		// they are using a Request object so we convert it to the options format.
+		// TODO: look into why this does not work on youtube.com. It returns a 400 error. I moved this logic past the foundFilter section so it works when there's not a filter.
+		if (url instanceof Request) {
             options.cache = url.cache;
             options.context = url.context;
             options.credentials = url.credentials;
@@ -426,19 +456,12 @@ console.log("This page is currently intercepting all Ajax requests");
             options.referrerPolicy = url.referrerPolicy;
             options.body = url.body;
             options.bodyUsed = url.bodyUsed;
-
+			options.keepalive = url.keepalive;
+			options.isHistoryNavigation = url.isHistoryNavigation
+			options.signal = url.signal;
             url = url.url;
         }
-
-		//console.log("FETCH",url)
 		
-        logAPI(url, "")
-		
-        var foundFilter = matchesUrlFilters(url);
-        if (foundFilter == null){
-            return proxyFetch(url, options);
-        }
-        
         if (foundFilter.isAutomated) {
             var isRejected = false;
             var requestObj = {
@@ -603,7 +626,7 @@ console.log("This page is currently intercepting all Ajax requests");
 		open(){
 			//super.open(...arguments)
 			this.#openArgs = arguments;
-			logAPI(arguments[1],"")
+			logAPI(arguments[1])
 			
 		}
 		
@@ -1077,11 +1100,10 @@ console.log("This page is currently intercepting all Ajax requests");
         document.body.addEventListener('submit', async function (event) {
             // get all elements with the attribute name. This should be everything that would be a parameter in the request.
             paramElements = event.target.querySelectorAll("[name]:checked,[name]:not([type=checkbox]):not([type=radio])"); 
-            paramString = "";
-            paramElements.forEach((ele) => paramString += ele.name + ",");
-            paramString.trim(",");
+            paramArr = [];
+            paramElements.forEach((ele) => paramArr.push(ele.name));
 
-            logAPI(event.target.action, paramString);
+            logAPI(event.target.action, paramArr);
             var foundFilter = matchesUrlFilters(event.target.action);
             if (foundFilter != null) {
                 event.preventDefault(); // prevents the form being submitted.
@@ -1152,7 +1174,7 @@ console.log("This page is currently intercepting all Ajax requests");
                 return sourceHandler;
             },
             set: function (handler) {
-                logAPI(this.url, "");
+                logAPI(this.url);
                 let thisRef = this;
                 sourceHandler = handler;
                 if (eventRef) {
@@ -1194,7 +1216,7 @@ console.log("This page is currently intercepting all Ajax requests");
         var proxiedAddEventListener = WebSocket.prototype.addEventListener;
         WebSocket.prototype.addEventListener = async function () {
             let thisRef = this;
-            logAPI(this.url, "")
+            logAPI(this.url)
             if (arguments[0] == "message") {
                 var foundFilter = matchesUrlFilters(this.url);
                 if (foundFilter != null) {

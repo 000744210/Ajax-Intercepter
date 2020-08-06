@@ -8,6 +8,8 @@ function makeUL(array) {
 
     for (var i = 0; i < array.length; i++) {
         // Create the list item:
+		if(array[i].length === 0)continue; // skip over "" named arguments due to a bug. 
+		
         var item = '<li>';
         item += array[i];
 		item +=  "</li>";
@@ -23,8 +25,8 @@ function makeUL(array) {
 
 
 var groupId =  parseInt(getQueryParameter("groupid"));
-document.getElementById("backBtn").href = "/src/page_action/editgroup.html?groupid=" + groupId
-
+document.getElementById("backBtn").href = "/src/page_action/editgroup.html?groupid=" + groupId;
+document.getElementById("groupBtn").href = "/src/page_action/createloggroup.html?groupid=" + groupId;
 
 
 chrome.storage.local.get(["ajaxLoggerData"+groupId], function(result) {

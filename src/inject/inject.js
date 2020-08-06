@@ -1,6 +1,6 @@
 function validURL(str) {
   // https://regexr.com/58mu8 add test case when it thinks it found a broken api url.
-  var pattern = new RegExp(/^(([^:\/<>?#]+:)(?:\/\/((?:([^\/<>?#:]*):([^\/<>?#:]*)@)?([^\/<>?#:]*)(?::([^\/<>?#:]*))?)))([^<>?#]*)(\?[^<>#]*)?(#.*)?$/,'i'); // fragment locator
+  var pattern = new RegExp(/^(([^:\/<>?#]+:)(?:\/\/((?:([^\/<>?#:]*):([^\/<>?#:]*)@)?([^\/<>?#:]*)(?::([^\/<>?#:]*))?)))([^<>?#]*)(\?[^<>#]*)?(#.*)?$/,'i');
   return !!pattern.test(str);
 }
 
@@ -15,6 +15,18 @@ function escapeHtml(s) {
         })[m];
     });
 }
+
+// Does a wild card regex comparison to validate if they match.
+// wildTest("google.com/search/*/","google.com/search/2346/") -> true
+// This implementation of wildcard search is different than the traditional implementation.
+// Normally It works like this: wildTest("google.com/search/*","google.com/search/2346/word") -> true
+// But in my impelementation the * only reads up to a / eg, .* -> [^/]* so in the case above would return false.
+function wildTest(wildcard, str) {
+	let w = wildcard.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\/$/,''); // regexp escape & remove trailing forward slash
+	const re = new RegExp(`^${w.replace(/\*/g,'[^/]*').replace(/\?/g,'.')}/?$`, 'i');
+	return re.test(str); // remove last 'i' above to have case sensitive
+}
+
 
 
 chrome.storage.local.get(["domainGroupData"], function (result) {
@@ -76,12 +88,51 @@ chrome.storage.local.get(["domainGroupData"], function (result) {
             
             
 
-            var logger = document.createElement("logger")
-            document.documentElement.appendChild(logger);
+            
+			
+			//var port = chrome.runtime.connect();
 
+			window.addEventListener("message", function(event) {
+				console.log("received1")
+			  // We only accept messages from ourselves
+			  if (event.source != window)
+				return;
+
+			  if (event.data.type && (event.data.type == "FROM_PAGE")) {
+				
+				event.data.args = event.data.args.filter(a=>a.length != 0)
+				
+				chrome.storage.local.get(["ajaxLoggerData" + id], function (result) {
+					var loggedAPIs = result['ajaxLoggerData' + id] || {};
+					var found = false;
+					for(var [key, value] of Object.entries(loggedAPIs)){
+						if(wildTest(key,event.data.url)){
+							var data = [...new Set(value.concat(event.data.args))]
+							
+							loggedAPIs[key] = data;
+							found = true;
+							break;
+						}
+					}
+					
+					if(!found){
+						loggedAPIs[event.data.url] = event.data.args
+					}
+					console.log("OMG" , event.data.url, event.data.args)
+					var jsonObj = {}
+                    jsonObj["ajaxLoggerData" + id] = loggedAPIs;
+                    console.log(jsonObj);
+                    chrome.storage.local.set(jsonObj);	
+				})
+				//port.postMessage(event.data.text);
+			  }
+			},true);
+			
+			
+			// TODO: do more research on sending messages between content scripts and websites. I believe it is possible to do this cleaner
             // Listens for when a new api object gets inserted into the logger object.
             // This would have been better as a onunload event but due to how async code can't be ran in there we had to do this.
-            logger.addEventListener( 'DOMNodeInserted',function(e){
+           /* logger.addEventListener( 'DOMNodeInserted',function(e){
                 // todo: instead of doing this query every dom insertion, only update ajaxLoggerData with that single element to optimize the code/performance.
                 // I think it's remnants of when trying out the onunload event.
                 var apis = document.querySelectorAll("html > logger > api");
@@ -115,7 +166,7 @@ chrome.storage.local.get(["domainGroupData"], function (result) {
                     
                     chrome.storage.local.set(jsonObj);
                 })                
-            });
+            });*/
             break;
         }else{
             console.log(window.location.hostname + " does not end with " + url)

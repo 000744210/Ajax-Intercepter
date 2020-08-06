@@ -99,6 +99,34 @@
 
 	color:black;
 }	
+
+.container {
+
+  clear: both;
+}
+
+.container input {
+  width: 100%;
+  clear: both;
+}	
+
+.continue-btn{
+	  background-color: rgb(0, 145, 234);
+	  border: none;
+	  color: white;
+	  padding: 5px;
+	  text-align: center;
+	  text-decoration: none;
+	  display: block;
+	  font-size: 16px;
+	  margin: 4px 2px;
+	  width:130px;
+	  cursor: pointer;
+	  border-radius:4px;
+	  margin-left:auto;
+	  margin-right:auto;
+}
+
 .btn{
     color: white;
     margin-top: 21px;
@@ -128,13 +156,17 @@
 
 <div id="mainPopup">
 	<header><h1>Ajax Request Tester</h1></header>
-	<p class='description'>During the running of this domain group, all APIs discovered will be displayed here.</p>
+	<p class='description'>Create a group for APIs using the wildcard character '*' to shrink the log list in the event of an API being detected multiple times. Example:<br>example.com/search/hello+world | example.com/search/foo+bar<br>Create a group: example.com/search/*</p>
 	<hr/>	
-	<span class='btn'><a href='' id='backBtn'>Back</a></span><span class='btn'><a href='' id='groupBtn'>Group APIs</a></span>
-	<h1 class='centered'>Logged APIs</h1>
-	<div id='domainGroup'>
-	
+	<span class='btn'><a href='' id='backBtn'>Back</a></span>
+	<h1 class='centered'>Create A Grouped API</h1>
+	<div class='container'>
+		<label for='displayname'>Group Url (required * as a wildcard)</label>
+				<span style='float:right;color:#929292;padding-right:3px'>shrinks all APIs that matches this.</span>
+		<input id='logGroup' name='logGroup' placeholder='https://www.example.com/search/*'/>
 	</div>
+	<br>
+	<button class="continue-btn" id='continueBtn'>Continue</button>
 </div>
 
-<script src='/src/page_action/viewlogs.js'></script>
+<script src='/src/page_action/createloggroup.js'></script>
