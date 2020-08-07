@@ -58,7 +58,6 @@ chrome.storage.local.get(["domainGroupData"], function (result) {
                     })
                     
                 }
-                console.log(libSet)
                 libSet.forEach(function(libUrl){
                     var script = document.createElement('script');
                     script.setAttribute("type", "text/javascript");
@@ -93,7 +92,6 @@ chrome.storage.local.get(["domainGroupData"], function (result) {
 			//var port = chrome.runtime.connect();
 
 			window.addEventListener("message", function(event) {
-				console.log("received1")
 			  // We only accept messages from ourselves
 			  if (event.source != window)
 				return;
@@ -118,10 +116,8 @@ chrome.storage.local.get(["domainGroupData"], function (result) {
 					if(!found){
 						loggedAPIs[event.data.url] = event.data.args
 					}
-					console.log("OMG" , event.data.url, event.data.args)
 					var jsonObj = {}
                     jsonObj["ajaxLoggerData" + id] = loggedAPIs;
-                    console.log(jsonObj);
                     chrome.storage.local.set(jsonObj);	
 				})
 				//port.postMessage(event.data.text);

@@ -143,6 +143,7 @@ This is the list of objects sent to <kbd>onRequestDataReturn</kbd> based by the 
 - XmlHttpRequest
 
       {
+	      type:"XMLHttpRequest",
           response:"", // xmlHttpRequest.response
           responseType:"" // xmlHttpRequest.responseType
       }

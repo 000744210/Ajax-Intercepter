@@ -17,7 +17,7 @@ async function onRequestDataSend(request)
 {
   console.log("Intercepted ", request);
   // Modify the request object here.
-  return request;	
+  return request;
 }
 
 // Intercept the data being returned to the website.
@@ -41,7 +41,7 @@ async function beforePageLoad()
 }
 
 // View more information here: 
-// https://github.com/000744210/Ajax-Intercepter)`);
+// https://github.com/000744210/Ajax-Intercepter`);
 
 var groupId =  parseInt(getQueryParameter("groupid"));
 var updateId = getQueryParameter("urlid")

@@ -583,6 +583,7 @@ console.log("This page is currently intercepting all Ajax requests");
 		
 		#isCached = false;
 		#cachedResponse = {
+			type:"XMLHttpRequest",
 			response:null,
 			responseType:null
 		}
@@ -601,6 +602,7 @@ console.log("This page is currently intercepting all Ajax requests");
 		async #cacheResponse(){			
 			
 			this.#cachedResponse = {
+				type:"XMLHttpRequest",
 				response:super.response,
 				responseType:super.responseType
 			}
