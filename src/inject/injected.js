@@ -220,12 +220,29 @@ console.log("This page is currently intercepting all Ajax requests");
         }
     }
     
+	function getUrlParameters(url) {
+		var retObject = {}, parameters;
+
+		if (url.indexOf('?') === -1) {
+			return null;
+		}
+
+		url = url.split('?')[1];
+
+		parameters = url.split('&');
+
+		for (var i = 0; i < parameters.length; i++) {
+			retObject[parameters[i].split('=')[0]] = parameters[i].split('=')[1];
+		}
+		return retObject;
+	}	
+	
 	// Returns a url with a new key/value parameter appended to it.
     // https://stackoverflow.com/questions/486896/adding-a-parameter-to-the-url-with-javascript
     function updateUrl(url, key, value) {
-        if (value !== undefined) {
+        /*if (value !== undefined) {
             value = encodeURI(value);
-        }
+        }*/
         var hashIndex = url.indexOf("#") | 0;
         if (hashIndex === -1) hashIndex = url.length | 0;
         var urls = url.substring(0, hashIndex).split('?');
@@ -659,13 +676,7 @@ console.log("This page is currently intercepting all Ajax requests");
 					return proxyXMLHttpRequest.prototype.send.apply(this,arguments);
 				}
 
-				var params = new URLSearchParams(relativeToAbsolute(this.#openArgs[1]).split('?')[1]);
-
-				var paramsObj = Array.from(params.keys()).reduce(
-						(acc, val) => ({
-							...acc,
-							[val]: params.get(val)
-						}), {});
+				var paramsObj = getUrlParameters(this.#openArgs[1]);
 
 				
 				var isRejected = false;
