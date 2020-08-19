@@ -91,7 +91,7 @@ There are two event functions defined which are used for reading/editing the req
 
 <kbd>onRequestDataSend</kbd> is an interception of the data before it gets sent to the server. The parameter <kbd>request</kbd> contains the event data which is modifiable. The object sent to <kbd>onRequestDataSend</kbd> is different depending on which AJAX method is used to send the request.
 
-This is the list of objects sent to <kbd>onRequestDataSend</kbd> based by the type if request.
+This is the list of objects sent to <kbd>onRequestDataSend</kbd> based by the type of request.
 
 - Fetch 
 
@@ -138,7 +138,7 @@ This is the list of objects sent to <kbd>onRequestDataSend</kbd> based by the ty
 
 <kbd>onRequestDataReturn</kbd> is an interception of the data the server sends to the webpage. The parameter <kbd>event</kbd> contains the event data which is modifiable. The object sent to <kbd>onRequestDataReturn</kbd> is different depending on which AJAX method is used to send the request.
 
-This is the list of objects sent to <kbd>onRequestDataReturn</kbd> based by the type if request.
+This is the list of objects sent to <kbd>onRequestDataReturn</kbd> based by the type of request.
 
 - XmlHttpRequest
 
