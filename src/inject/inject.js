@@ -21,14 +21,20 @@ function escapeHtml(s) {
 // This implementation of wildcard search is different than the traditional implementation.
 // Normally It works like this: wildTest("google.com/search/*","google.com/search/2346/word") -> true
 // But in my impelementation the * only reads up to a / eg, .* -> [^/]* so in the case above would return false.
+// To get the initial implementation you can use **
 function wildTest(wildcard, str) {
-	let w = wildcard.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\/$/,''); // regexp escape & remove trailing forward slash
-	const re = new RegExp(`^${w.replace(/\*/g,'[^/]*').replace(/\?/g,'.')}/?$`, 'i');
+	let w = wildcard.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\/$/,''); 
+    var mapObj = {
+       "**":".*",
+       "*":"[^/]*",
+       "?":"."
+    };
+    regx = w.replace(/\*\*|\*|\?/g, function(matched){
+      return mapObj[matched];
+    });
+	const re = new RegExp(`^${regx}/?$`, 'i');
 	return re.test(str); // remove last 'i' above to have case sensitive
 }
-
-
-
 chrome.storage.local.get(["domainGroupData"], function (result) {
 
     domains = result['domainGroupData'] || {}

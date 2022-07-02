@@ -68,17 +68,29 @@ console.log("This page is currently intercepting all Ajax requests");
 	
     // _FILTER_URLS is injected into our webpage from /src/inject/inject.js
     var filters = Object.entries(_FILTER_URLS);
-    
+    function magicEval(code){
+		var script = document.createElement("script");
+		//script.src = URL.createObjectURL(new Blob([code], {type: 'text/javascript'}));
+		script.innerHTML = code
+		script.type = "text/javascript";
+		document.getElementsByTagName('head')[0].appendChild(script);
+	}	
     // the location where our evaluated user's code is stored.
     var filterMethods = {}
     for (let [key, value] of filters) {
-        (async function(onRequestDataSend=null,onRequestDataReturn=null,init=null,beforePageLoad=null){
+        (async function(){
 			
 			// assign an id to every filter.
 			// id is used for a lookup for the filterMethods object
 			value.id = key;
-			
-			eval(value.code)
+			try{
+				// If the browser does not block eval.
+				eval(value.code)
+			}catch(e){
+				// If the browser blocks eval and allows blob. Very rare but its a small bypass for now. Maybe I can edit site headers to allow eval?
+				magicEval(value.code);
+
+			}
 			if(beforePageLoad){
 				await beforePageLoad()
 			}
@@ -200,21 +212,32 @@ console.log("This page is currently intercepting all Ajax requests");
 	// This implementation of wildcard search is different than the traditional implementation.
 	// Normally It works like this: wildTest("google.com/search/*","google.com/search/2346/word") -> true
 	// But in my impelementation the * only reads up to a / eg, .* -> [^/]* so in the case above would return false.
-    function wildTest(wildcard, str) {
-        let w = wildcard.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\/$/,''); // regexp escape & remove trailing forward slash
-        const re = new RegExp(`^${w.replace(/\*/g,'[^/]*').replace(/\?/g,'.')}/?$`, 'i');
-        return re.test(str); // remove last 'i' above to have case sensitive
-    }
+	// To get the initial implementation you can use **
+	function wildTest(wildcard, str) {
+		let w = wildcard.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\/$/,''); 
+		var mapObj = {
+		   "**":".*",
+		   "*":"[^/]*",
+		   "?":"."
+		};
+		regx = w.replace(/\*\*|\*|\?/g, function(matched){
+		  return mapObj[matched];
+		});
+		const re = new RegExp(`^${regx}/?$`, 'i');
+		return re.test(str); // remove last 'i' above to have case sensitive
+	}
     
     // When an api is called we need to know if the user has this the api as filter.
     // If the url matches it will return the filter it match.
     // To view the filters you can access them with the global _FILTER_URLS variable.
     function matchesUrlFilters(url) {
+		
         url = relativeToAbsolute(url);
         url = url.split('?')[0];
         var filters = Object.entries(_FILTER_URLS);
         for (let[key, value]of filters) {
             if (wildTest(value.url, url)) {
+				console.log("MATCHES",url)
                 return value;
             }
         }
@@ -224,7 +247,7 @@ console.log("This page is currently intercepting all Ajax requests");
 		var retObject = {}, parameters;
 
 		if (url.indexOf('?') === -1) {
-			return null;
+			return retObject;
 		}
 
 		url = url.split('?')[1];
@@ -447,7 +470,7 @@ console.log("This page is currently intercepting all Ajax requests");
 		}else{
 			foundFilter=  matchesUrlFilters(url);
 		}
-
+		
         if (foundFilter == null){
 			if(url instanceof Request){
 				return proxyFetch(url);
@@ -508,7 +531,7 @@ console.log("This page is currently intercepting all Ajax requests");
                                     
                                     onRequestDataReturn(requestObj).then(function(newData){
                                         // create a new response for the modified body
-                                        let dataResponse = new Response(newData.data,{
+                                        let dataResponse = new Response(newData.data || null,{
                                             status:data.status,
                                             statusText:data.statusText,
                                             headers:data.headers
@@ -531,22 +554,26 @@ console.log("This page is currently intercepting all Ajax requests");
                 if(onRequestDataReturn!=null){        
                     return new Promise(function(resolve,reject){
                         fetchReturn.then(function(data){
-                            data.text().then(function(text){
-                                let requestObj = {
-                                    type: 'Fetch',
-                                    data: text
-                                }
-                                
-                                onRequestDataReturn(requestObj).then(function(newData){
-                                    // create a new response for the modified body
-                                    let dataResponse = new Response(newData.data,{
-                                        status:data.status,
-                                        statusText:data.statusText,
-                                        headers:data.headers
-                                    });
+							//console.log(data);
+                            data.text().then(function(text){//debugger;
+								
+								let requestObj = {
+									type: 'Fetch',
+									data: text
+								}
+								//debugger;
 
-                                    resolve(dataResponse);
-                                });    
+								onRequestDataReturn(requestObj).then(function(newData){
+									// create a new response for the modified body
+									//debugger;
+									let dataResponse = new Response(newData.data || null,{
+										status:data.status,
+										statusText:data.statusText,
+										headers:data.headers,
+									});
+
+									resolve(dataResponse);
+								});    
                             })
                             
                         }).catch(function(data){
@@ -627,10 +654,14 @@ console.log("This page is currently intercepting all Ajax requests");
 			if(!this.#isCached){	
 				this.#isCached = true;
 				var foundFilter = matchesUrlFilters(this.#openArgs[1]);
+				
 				if(foundFilter!=null && foundFilter.isAutomated){
+					
 					let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;	
 					if(onRequestDataReturn!=null){
+						
 						var editedResponse = await onRequestDataReturn.bind(this)(this.#cachedResponse);
+						
 						this.#cachedResponse = editedResponse
 					}
 				}
@@ -652,6 +683,7 @@ console.log("This page is currently intercepting all Ajax requests");
 		async send(){
 			this.#isCached = false;
 			var foundFilter = matchesUrlFilters(this.#openArgs[1]);
+			console.log("xml2",this.#openArgs[1])
 			var classRef = this; // some reference of 'this' does not refer to the class
 			// if the api does not match any the user wants to edit we will just perform the function as it normally would.
 			if (foundFilter == null || this.#openArgs[1] == null) { 
@@ -662,11 +694,11 @@ console.log("This page is currently intercepting all Ajax requests");
 				});
 				return proxyXMLHttpRequest.prototype.send.apply(this,arguments);
 			}
-			
+			console.log("pass 1")
 			if (foundFilter.isAutomated) {
 				let onRequestDataSend = filterMethods[foundFilter.id].onRequestDataSend;
 				//console.log(this.#openArgs[1],onRequestDataSend);
-				
+				console.log("pass 2",filterMethods[foundFilter.id])
 				if(onRequestDataSend==null){
 					proxyXMLHttpRequest.prototype.open.apply(this,this.#openArgs)
 
@@ -678,23 +710,22 @@ console.log("This page is currently intercepting all Ajax requests");
 
 				var paramsObj = getUrlParameters(this.#openArgs[1]);
 
-				
 				var isRejected = false;
 				var requestObj = {
 					type: 'XmlHttpRequest',
 					args: paramsObj,
 					url: this.#openArgs[1].split('?')[0],
-					method: this.#openArgs[0],
+					method: this.#openArgs[0].toUpperCase(),
 					headers: this.#headers,
 					body: arguments[0],
 					reject: function () {
 						isRejected = true;
 					}
 				}
-				
+				console.log("pass 3")
 				// give the user the requestObj to modify it.
 				var newRequestObj = await onRequestDataSend.bind(this)(requestObj);
-
+				console.log("pass 4")
 				if(isRejected) return;
 
 				var argUrl = newRequestObj.url
@@ -1128,7 +1159,7 @@ console.log("This page is currently intercepting all Ajax requests");
                             type: "Form",
                             args: {},
                             url: event.target.action,
-                            method: event.target.method,
+                            method: event.target.method.toUpperCase(),
                             reject: function () {
                                 isRejected = true;
                             }
@@ -1181,7 +1212,6 @@ console.log("This page is currently intercepting all Ajax requests");
         var handleHandler = new Map();
         var eventRef = null;
         var sourceHandler = null;
-
         Object.defineProperty(WebSocket.prototype, "onmessage", {
             get: function () {
                 return sourceHandler;
@@ -1196,6 +1226,7 @@ console.log("This page is currently intercepting all Ajax requests");
                 if (typeof(handler) == "function") {
                     eventRef = async function (event) {
                         var foundFilter = matchesUrlFilters(this.url);
+						
                         if (foundFilter != null) {
                             
                             let onRequestDataReturn = filterMethods[foundFilter.id].onRequestDataReturn;
@@ -1229,8 +1260,10 @@ console.log("This page is currently intercepting all Ajax requests");
         var proxiedAddEventListener = WebSocket.prototype.addEventListener;
         WebSocket.prototype.addEventListener = async function () {
             let thisRef = this;
+			
             logAPI(this.url)
             if (arguments[0] == "message") {
+				
                 var foundFilter = matchesUrlFilters(this.url);
                 if (foundFilter != null) {
                     let handler = arguments[1];

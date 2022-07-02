@@ -95,7 +95,6 @@ document.getElementById("continueBtn").onclick = function(){
             window.location.href="/src/page_action/editgroup.html?id="+groupId;
         });
     });
-    debugger;
 }
 
 function updateCodeBox()
