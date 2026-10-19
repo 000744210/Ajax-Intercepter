@@ -33,7 +33,7 @@
     "codemirror": "^6.0.1",
     "pinia": "^2.0.35",
     "tldts": "^6.0.4",
-    "vue": "^3.2.47",
+    "vue": "^3.5.44",
     "vue-codemirror": "^6.1.1",
     "vue-demi": "^0.14.0",
     "webextension-polyfill": "^0.10.0"
