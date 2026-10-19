@@ -1,0 +1,39 @@
+<template>
+    <div class="">
+      This is home2 {{ t }}
+    </div>
+  </template>
+  
+  <script lang="ts">
+
+  import {defineComponent} from 'vue';
+  
+  export default .defineComponent({
+    props: {
+      t: String
+    },
+    components: {
+  
+    },
+    data() {
+      return {   
+  
+      };
+    },
+    mounted(){
+      
+    },
+    methods:{
+  
+    },
+    computed: {
+  
+      },
+    watch:{
+    }
+  })
+  </script>
+  
+  <style scoped>
+
+  </style>
